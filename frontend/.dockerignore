@@ -1,0 +1,20 @@
+# .dockerignore
+
+# Ignorar node_modules (es enorme, y se reinstalará dentro del contenedor)
+node_modules
+
+# Ignorar la carpeta de build si ya está generada localmente
+build
+dist
+
+# Ignorar carpetas y archivos de control de versiones
+.git
+.gitignore
+
+# Ignorar archivos de logs
+*.log
+
+# Ignorar ficheros editor/IDE
+.vscode
+.idea
+*.swp

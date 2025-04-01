@@ -1,0 +1,17 @@
+# PATH: docker-compose.yml
+
+services:
+  frontend:
+    container_name: ip-frontend
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    depends_on:
+      - backend
+
+  backend:
+    container_name: ip-backend
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+

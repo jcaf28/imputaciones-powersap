@@ -1,0 +1,44 @@
+{
+  "version": "0.2.0",
+  "compounds": [
+    {
+      "name": "Debug Frontend y Backend",
+      "configurations": ["Attach to FastAPI", "Attach to Vite (Chrome)"]
+    }
+  ],
+  "configurations": [
+    {
+      "name": "Attach to FastAPI",
+      "type": "debugpy",
+      "request": "attach",
+      "connect": {
+        "host": "localhost",
+        "port": 5678
+      },
+      "pathMappings": [
+        {
+          "localRoot": "${workspaceFolder}/backend/app",
+          "remoteRoot": "/app/app"
+        }
+      ]
+    },
+    {
+      "name": "Attach to Vite (Chrome)",
+      "type": "chrome",
+      "request": "launch",
+      "url": "http://localhost:5173",
+      "webRoot": "${workspaceFolder}/frontend",
+      "sourceMapPathOverrides": {
+        "webpack:///src/*": "${webRoot}/src/*",
+        "webpack:///./src/*": "${webRoot}/src/*"
+      }
+    },
+    {
+      "name": "Attach to Chrome",
+      "type": "chrome",
+      "request": "attach",
+      "port": 9222,
+      "webRoot": "${workspaceFolder}/frontend"
+    }
+  ]
+}
