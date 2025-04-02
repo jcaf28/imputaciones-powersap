@@ -1,9 +1,14 @@
-// PATH: frontend/src/pages/ImputacionesIP.jsx
+// PATH: frontend/src/pages/AgregarImputaciones.jsx
 
 import { Box, Typography } from "@mui/material";
 import useImputacionesIP from "../hooks/useImputacionesIP";
 import ImputacionesIPForm from "../components/ImputacionesIPForm";
 import ImputacionesIPStatus from "../components/ImputacionesIPStatus";
+
+export const meta = {
+  label: "Agregar Imputaciones", // nombre para el sidebar
+  priority: 2              // orden de aparición
+};
 
 export default function ImputacionesIP() {
   const {
