@@ -1,5 +1,4 @@
 # PATH: docker-compose.yml
-version: "3.8"
 
 services:
   frontend:
@@ -21,5 +20,3 @@ services:
     environment:
       SERVICE_NAME: "${SERVICE_NAME}"
       BACKEND_PORT: "${BACKEND_PORT}"
-    depends_on:
-      - backend
