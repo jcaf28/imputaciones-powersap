@@ -8,20 +8,21 @@ services:
       - proxy_net
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.ip-frontend.rule=PathPrefix(`/ip`)"
-      - "traefik.http.routers.ip-frontend.entryPoints=websecure"
-      - "traefik.http.routers.ip-frontend.tls=true"
-      - "traefik.http.services.ip-frontend.loadbalancer.server.port=80"
+      - "traefik.http.routers.${SERVICE_NAME}-frontend.rule=PathPrefix(`/${SERVICE_NAME}`)"
+      - "traefik.http.routers.${SERVICE_NAME}-frontend.entryPoints=websecure"
+      - "traefik.http.routers.${SERVICE_NAME}-frontend.tls=true"
+      - "traefik.http.services.${SERVICE_NAME}-frontend.loadbalancer.server.port=80"
 
   backend:
     networks:
       - proxy_net
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.ip-backend.rule=PathPrefix(`/ip/api`)"
-      - "traefik.http.routers.ip-backend.entryPoints=websecure"
-      - "traefik.http.routers.ip-backend.tls=true"
-      - "traefik.http.services.ip-backend.loadbalancer.server.port=8000"
+      - "traefik.http.routers.${SERVICE_NAME}-backend.rule=PathPrefix(`/${SERVICE_NAME}/api`)"
+      - "traefik.http.routers.${SERVICE_NAME}-backend.entryPoints=websecure"
+      - "traefik.http.routers.${SERVICE_NAME}-backend.tls=true"
+      - "traefik.http.services.${SERVICE_NAME}-backend.loadbalancer.server.port=8000"
+
       
 networks:
   proxy_net:

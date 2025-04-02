@@ -1,4 +1,4 @@
-# PATH: manual-imputaciones-ip/etl/transformer.py
+# PATH: backend/app/services/imputaciones_ip/transformer.py
 
 import pandas as pd
 from ._utils import extraer_centro_por_chapa, extraer_fecha_imputacion, reordenar_y_formatear_columnas, dividir_horas

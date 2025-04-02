@@ -34,10 +34,12 @@ RUN npm run build
 FROM nginx:alpine AS prod
 
 # Copiar config custom de Nginx (si es que la usas)
-COPY default.conf /etc/nginx/conf.d/default.conf
+COPY default.conf.template /etc/nginx/templates/default.conf.template
+ENV SERVICE_NAME=${SERVICE_NAME}
 
 # Copiar la carpeta compilada (dist) de la etapa de build
 COPY --from=build /app/dist /usr/share/nginx/html
 
 EXPOSE 80
-CMD ["nginx", "-g", "daemon off;"]
+CMD ["sh", "-c", "envsubst < /etc/nginx/templates/default.conf.template > /etc/nginx/conf.d/default.conf && nginx -g 'daemon off;'"]
+

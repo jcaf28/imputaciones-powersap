@@ -1,4 +1,4 @@
-# PATH: backend/app/services/_constants_imputaciones.py
+# PATH: backend/app/services/imputaciones_ip/_constants_imputaciones.py
 
 COLUMNAS_MINIMAS = {
     "descarga_imputaciones": [

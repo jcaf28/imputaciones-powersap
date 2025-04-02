@@ -1,4 +1,4 @@
-# PATH: manual-imputaciones-ip/etl/exporter.py
+# PATH: backend/app/services/imputaciones_ip/exporter.py
 
 from datetime import datetime
 import os

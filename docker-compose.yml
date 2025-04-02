@@ -2,7 +2,7 @@
 
 services:
   frontend:
-    container_name: ip-frontend
+    container_name: ${SERVICE_NAME}-frontend
     build:
       context: ./frontend
       dockerfile: Dockerfile
@@ -10,8 +10,7 @@ services:
       - backend
 
   backend:
-    container_name: ip-backend
+    container_name: ${SERVICE_NAME}-backend
     build:
       context: ./backend
       dockerfile: Dockerfile
-

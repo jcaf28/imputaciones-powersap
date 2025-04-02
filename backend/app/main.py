@@ -1,8 +1,11 @@
 # PATH: backend/app/main.py
 
+import os
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from app.api.routes import health, cnc, imputaciones_ip  
+from app.api.routes import health, cnc, imputaciones_ip
+
+BASE_PATH = f"/{os.environ.get('SERVICE_NAME')}/api"
 
 app = FastAPI()
 
@@ -14,6 +17,6 @@ app.add_middleware(
   allow_headers=["*"],
 )
 
-app.include_router(health.router, prefix="/ip/api")
-app.include_router(cnc.router, prefix="/ip/api/obtencion-cnc", tags=["cnc"])
-app.include_router(imputaciones_ip.router, prefix="/ip/api/imputaciones-ip", tags=["imputaciones-ip"])
+app.include_router(health.router, prefix=f"{BASE_PATH}")
+app.include_router(cnc.router, prefix=f"{BASE_PATH}/obtencion-cnc", tags=["cnc"])
+app.include_router(imputaciones_ip.router, prefix=f"{BASE_PATH}/imputaciones-ip", tags=["imputaciones-ip"])

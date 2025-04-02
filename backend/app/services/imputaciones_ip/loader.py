@@ -1,4 +1,4 @@
-# PATH: manual-imputaciones-ip/etl/loader.py
+# PATH: backend/app/services/imputaciones_ip/loader.py
 
 import pandas as pd
 from ._constants_imputaciones import COLUMNAS_MINIMAS

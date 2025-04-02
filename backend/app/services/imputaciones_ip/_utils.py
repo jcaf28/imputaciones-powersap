@@ -1,4 +1,4 @@
-# PATH: manual-imputaciones-ip/etl/_utils.py
+# PATH: backend/app/services/imputaciones_ip/_utils.py
 
 import pandas as pd
 

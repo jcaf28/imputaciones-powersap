@@ -1,3 +1,5 @@
+// PATH: frontend/src/theme/index.js
+
 import { createTheme } from '@mui/material/styles';
 
 const commonTypography = {

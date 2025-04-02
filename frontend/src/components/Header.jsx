@@ -16,7 +16,7 @@ function Header() {
           <Home />
         </IconButton>
         
-        <Typography variant="h6">IP DIVISIÓN 3</Typography>
+        <Typography variant="h6">Imputaciones PowerApps D3</Typography>
         
         {/* Botón de cambio de tema */}
         <IconButton onClick={toggleTheme} color="inherit">
