@@ -1,23 +1,30 @@
 # PATH: docker-compose.override.yml
+version: "3.8"
 
 services:
   frontend:
     build:
       target: dev
+      args:
+        SERVICE_NAME: "${SERVICE_NAME}"
+        FRONTEND_PORT: "${FRONTEND_PORT}"
     ports:
-      - "5173:5173"
-    environment:
-      CHOKIDAR_USEPOLLING: "true" # Required for hot-reloading in Windows
-      CHOKIDAR_INTERVAL: "1000" # Required for hot-reloading in Windows
+      - "${FRONTEND_PORT}:${FRONTEND_PORT}"
     volumes:
       - ./frontend/src:/app/src
+    environment:
+      CHOKIDAR_USEPOLLING: "true"
+      CHOKIDAR_INTERVAL: "1000"
+
   backend:
+    build:
+      args:
+        SERVICE_NAME: "${SERVICE_NAME}"
+        BACKEND_PORT: "${BACKEND_PORT}"
     ports:
-      - "8000:8000"
-      - "5678:5678"  # Puerto para el depurador
+      - "${BACKEND_PORT}:${BACKEND_PORT}"
+      - "5678:5678"
     volumes:
       - ./backend/app:/app/app
-      - ./backend/tmp:/app/tmp # Para almacenar archivos temporales de depuración
-    command: ["python", "-m", "debugpy", "--listen", "0.0.0.0:5678", "-m", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
-
-
+      - ./backend/tmp:/app/tmp
+    command: ["python", "-m", "debugpy", "--listen", "0.0.0.0:5678", "-m", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "${BACKEND_PORT}", "--reload"]

@@ -1,16 +1,25 @@
 # PATH: docker-compose.yml
+version: "3.8"
 
 services:
   frontend:
-    container_name: ${SERVICE_NAME}-frontend
+    container_name: "${SERVICE_NAME}-frontend"
     build:
       context: ./frontend
       dockerfile: Dockerfile
+    environment:
+      SERVICE_NAME: "${SERVICE_NAME}"
+      FRONTEND_PORT: "${FRONTEND_PORT}"
     depends_on:
       - backend
 
   backend:
-    container_name: ${SERVICE_NAME}-backend
+    container_name: "${SERVICE_NAME}-backend"
     build:
       context: ./backend
       dockerfile: Dockerfile
+    environment:
+      SERVICE_NAME: "${SERVICE_NAME}"
+      BACKEND_PORT: "${BACKEND_PORT}"
+    depends_on:
+      - backend

@@ -1,9 +1,13 @@
 # PATH: docker-compose.prod.yml
+version: "3.8"
 
 services:
   frontend:
     build:
       target: prod
+      args:
+        SERVICE_NAME: "${SERVICE_NAME}"
+        FRONTEND_PORT: "${FRONTEND_PORT}"
     networks:
       - proxy_net
     labels:
@@ -14,6 +18,10 @@ services:
       - "traefik.http.services.${SERVICE_NAME}-frontend.loadbalancer.server.port=80"
 
   backend:
+    build:
+      args:
+        SERVICE_NAME: "${SERVICE_NAME}"
+        BACKEND_PORT: "${BACKEND_PORT}"
     networks:
       - proxy_net
     labels:
@@ -21,10 +29,9 @@ services:
       - "traefik.http.routers.${SERVICE_NAME}-backend.rule=PathPrefix(`/${SERVICE_NAME}/api`)"
       - "traefik.http.routers.${SERVICE_NAME}-backend.entryPoints=websecure"
       - "traefik.http.routers.${SERVICE_NAME}-backend.tls=true"
-      - "traefik.http.services.${SERVICE_NAME}-backend.loadbalancer.server.port=8000"
+      # mapeamos el puerto interno del contenedor (backend) -> traefik
+      - "traefik.http.services.${SERVICE_NAME}-backend.loadbalancer.server.port=${BACKEND_PORT}"
 
-      
 networks:
   proxy_net:
     external: true
-
