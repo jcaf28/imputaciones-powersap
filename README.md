@@ -1,5 +1,5 @@
 # suite-ip
-Página web para alojar aplicaciones para CPSL de div3
+Página web para alojar aplicaciones para adaptar las imputaciones del powerapps a SAP de div3
 
 # dev:
 docker-compose up --build
