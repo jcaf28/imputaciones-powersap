@@ -1,4 +1,4 @@
-// PATH: frontend/src/pages/Ip.jsx
+// PATH: frontend/src/pages/Home.jsx
 
 import { Container, Box, Typography, useTheme } from '@mui/material';
 
@@ -11,7 +11,7 @@ function Ip() {
       sx={{ mt: 8, mb: 8, textAlign: 'center', backgroundColor: theme.palette.background.default }}
     >
       <Typography variant="h3" sx={{ mb: 2 }}>
-        Bienvenido a la Suite de Utilidades IP
+        Transformador de imputaciones de IP DIV3 a SAP
       </Typography>
       <Box
         sx={{

@@ -1,9 +1,10 @@
 // PATH: frontend/src/App.jsx
+
 import { Routes, Route } from 'react-router-dom';
 import Header from './components/Header';
 import SideNav from './components/SideNav';
-import Ip from './pages/Ip';
-import ImputacionesIP from './pages/ImputacionesIP';
+import routes from './routes/routesAuto';
+import Home from './pages/Home'; // Página principal
 
 function App() {
   return (
@@ -13,8 +14,10 @@ function App() {
         <SideNav />
         <main style={{ flexGrow: 1, padding: '16px' }}>
           <Routes>
-            <Route path="/" element={<Ip />} />
-            <Route path="/imputaciones-ip" element={<ImputacionesIP />} />
+            <Route path="/" element={<Home />} />
+            {routes.map(({ path, element }) => (
+              <Route key={path} path={path} element={element} />
+            ))}
           </Routes>
         </main>
       </div>
@@ -23,4 +26,3 @@ function App() {
 }
 
 export default App;
-

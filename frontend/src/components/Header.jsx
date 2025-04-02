@@ -12,7 +12,7 @@ function Header() {
     <AppBar position="fixed" sx={{ width: '100%' }}>
       <Toolbar sx={{ display: 'flex', justifyContent: 'space-between' }}>
         {/* Botón Home */}
-        <IconButton component={Link} to="/ip" color="inherit">
+        <IconButton component={Link} to={`/`} color="inherit">
           <Home />
         </IconButton>
         
