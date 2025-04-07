@@ -15,7 +15,7 @@ export default defineConfig(() => {
       'import.meta.env.VITE_SERVICE_NAME': JSON.stringify(serviceName),
       'import.meta.env.VITE_FRONTEND_PORT': JSON.stringify(frontendPort),
       'import.meta.env.VITE_BACKEND_PORT': JSON.stringify(backendPort),
-      'import.meta.env.VITE_API_BASE_URL': JSON.stringify(`/${serviceName}/api`),
+      'import.meta.env.VITE_API_BASE_URL': JSON.stringify(`/api`),
     },
     base: `/${serviceName}/`,
     plugins: [react()],
@@ -26,7 +26,6 @@ export default defineConfig(() => {
           changeOrigin: true,
         },
       },
-    },
-    
+    }, 
   };
 });

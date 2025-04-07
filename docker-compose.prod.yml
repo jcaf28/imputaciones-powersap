@@ -7,6 +7,7 @@ services:
       args:
         SERVICE_NAME: "${SERVICE_NAME}"
         FRONTEND_PORT: "${FRONTEND_PORT}"
+        ENVIRONMENT: "production"
     networks:
       - proxy_net
     labels:

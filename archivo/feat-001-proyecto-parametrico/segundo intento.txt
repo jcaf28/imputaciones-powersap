@@ -1,0 +1,255 @@
+./
+│   ├── .env
+│   ├── .gitignore
+│   ├── LICENSE
+│   ├── README.md
+│   ├── docker-compose.override.yml
+│   ├── docker-compose.prod.yml
+│   ├── docker-compose.yml
+├── .vscode/
+│   │   ├── launch.json
+│   │   ├── settings.json
+├── archivo/
+│   ├── feat-001-proyecto-parametrico/
+│   │   │   ├── proyecto-parametrico-dev.txt
+├── backend/
+│   │   ├── .dockerignore
+│   │   ├── Dockerfile
+│   │   ├── requirements.txt
+│   ├── app/
+│   │   │   ├── __init__.py
+│   │   │   ├── main.py
+│   │   ├── api/
+│   │   │   │   ├── __init__.py
+│   │   │   ├── routes/
+│   │   │   │   │   ├── cnc.py
+│   │   │   │   │   ├── escaneos.py
+│   │   │   │   │   ├── health.py
+│   │   │   │   │   ├── imputaciones_ip.py
+│   │   │   │   │   ├── upload.py
+│   │   ├── core/
+│   │   │   │   ├── __init__.py
+│   │   │   │   ├── sse_manager.py
+│   │   ├── services/
+│   │   │   │   ├── __init__.py
+│   │   │   │   ├── cnc_processor.py
+│   │   │   │   ├── file_processor.py
+│   │   │   │   ├── imputaciones_ip_processor.py
+│   │   │   │   ├── seguimiento_escaneos_service.py
+│   │   │   │   ├── validation_imputaciones_service.py
+│   │   │   ├── imputaciones_ip/
+│   │   │   │   │   ├── __init__.py
+│   │   │   │   │   ├── _constants_imputaciones.py
+│   │   │   │   │   ├── _utils.py
+│   │   │   │   │   ├── exporter.py
+│   │   │   │   │   ├── loader.py
+│   │   │   │   │   ├── transformer.py
+│   │   │   ├── utils/
+│   │   │   │   │   ├── __init__.py
+│   │   │   │   │   ├── cnc_processor_utils.py
+│   │   │   │   │   ├── escaneos_utils.py
+│   ├── tests/
+│   │   │   ├── test_health.py
+│   ├── tmp/
+│   │   │   ├── AVISOS_CALIDAD.xlsx
+├── frontend/
+│   │   ├── .dockerignore
+│   │   ├── .env.development
+│   │   ├── .env.production
+│   │   ├── Dockerfile
+│   │   ├── default.conf.template
+│   │   ├── index.html
+│   │   ├── package-lock.json
+│   │   ├── package.json
+│   │   ├── vite.config.js
+│   ├── src/
+│   │   │   ├── App.jsx
+│   │   │   ├── main.jsx
+│   │   │   ├── setupTests.js
+│   │   ├── components/
+│   │   │   │   ├── FileUploadChecker.jsx
+│   │   │   │   ├── Header.jsx
+│   │   │   │   ├── ImputacionesIPForm.jsx
+│   │   │   │   ├── ImputacionesIPStatus.jsx
+│   │   │   │   ├── SideNav.jsx
+│   │   ├── contexts/
+│   │   │   │   ├── PageContext.jsx
+│   │   │   │   ├── ThemeContext.jsx
+│   │   ├── hooks/
+│   │   │   │   ├── useCNC.js
+│   │   │   │   ├── useImputacionesIP.js
+│   │   │   │   ├── useSSE.js
+│   │   ├── pages/
+│   │   │   │   ├── AgregarImputaciones.jsx
+│   │   │   │   ├── CargarRespuestaSap.jsx
+│   │   │   │   ├── GererarImputaciones.jsx
+│   │   │   │   ├── Home.jsx
+│   │   │   │   ├── ObtenerFeedback.jsx
+│   │   │   │   ├── SubirArchivos.jsx
+│   │   │   │   ├── SubirTecos.jsx
+│   │   ├── routes/
+│   │   │   │   ├── routesAuto.jsx
+│   │   ├── services/
+│   │   │   │   ├── healthService.js
+│   │   │   │   ├── uploadCNCService.js
+│   │   │   │   ├── uploadImputacionesService.js
+│   │   │   │   ├── uploadService.js
+│   │   ├── styles/
+│   │   │   │   ├── main.css
+│   │   ├── theme/
+│   │   │   │   ├── index.js
+
+Con la configuración actual de mi proyecto, necesito dividir la ruta a la que sehacen las peticiones del frontend al backend, porque no está funcionando: 
+
+# PATH: docker-compose.yml
+
+services:
+  frontend:
+    container_name: "${SERVICE_NAME}-frontend"
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    environment:
+      SERVICE_NAME: "${SERVICE_NAME}"
+      FRONTEND_PORT: "${FRONTEND_PORT}"
+      BACKEND_PORT: "${BACKEND_PORT}"
+    depends_on:
+      - backend
+
+  backend:
+    container_name: "${SERVICE_NAME}-backend"
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    environment:
+      SERVICE_NAME: "${SERVICE_NAME}"
+      BACKEND_PORT: "${BACKEND_PORT}"
+
+# PATH: docker-compose.override.yml
+
+services:
+  frontend:
+    build:
+      target: dev
+      args:
+        SERVICE_NAME: "${SERVICE_NAME}"
+        FRONTEND_PORT: "${FRONTEND_PORT}"
+        API_URL: "http://localhost:${BACKEND_PORT}/${SERVICE_NAME}/api"
+    ports:
+      - "${FRONTEND_PORT}:${FRONTEND_PORT}"
+    volumes:
+      - ./frontend/src:/app/src
+    environment:
+      CHOKIDAR_USEPOLLING: "true"
+      CHOKIDAR_INTERVAL: "1000"
+
+  backend:
+    build:
+      args:
+        VITE_SERVICE_NAME: "${SERVICE_NAME}"   
+        SERVICE_NAME: "${SERVICE_NAME}"
+        BACKEND_PORT: "${BACKEND_PORT}"
+    ports:
+      - "${BACKEND_PORT}:${BACKEND_PORT}"
+      - "5678:5678"
+    volumes:
+      - ./backend/app:/app/app
+      - ./backend/tmp:/app/tmp
+    command: ["python", "-m", "debugpy", "--listen", "0.0.0.0:5678", "-m", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "${BACKEND_PORT}", "--reload"]
+
+Acabo de añadir la línea de API_URL: "http://localhost:${BACKEND_PORT}/${SERVICE_NAME}/api" para desarrollo; cómo hago para que en desarrollo se llame a la api desde esa url? 
+
+Hasta ahora tengo: 
+
+
+// PATH: frontend/vite.config.js
+
+import { defineConfig } from 'vite';
+import react from '@vitejs/plugin-react';
+
+export default defineConfig(() => {
+  // Lee las variables de entorno definidas en Docker (ENV).
+  const serviceName = process.env.VITE_SERVICE_NAME;
+  const frontendPort = parseInt(process.env.VITE_FRONTEND_PORT);
+  const backendPort = parseInt(process.env.VITE_BACKEND_PORT);
+
+  return {
+    define: {
+      // inyectar en import.meta.env
+      'import.meta.env.VITE_SERVICE_NAME': JSON.stringify(serviceName),
+      'import.meta.env.VITE_FRONTEND_PORT': JSON.stringify(frontendPort),
+      'import.meta.env.VITE_BACKEND_PORT': JSON.stringify(backendPort),
+      'import.meta.env.VITE_API_BASE_URL': JSON.stringify(`/${serviceName}/api`),
+    },
+    base: `/${serviceName}/`,
+    plugins: [react()],
+    server: {
+      proxy: {
+        '/api': {
+          target: `http://${serviceName}-backend:${backendPort}`,
+          changeOrigin: true,
+        },
+      },
+    },
+    
+  };
+});
+
+# PATH: frontend/Dockerfile
+
+# ========================
+# STAGE 1: Desarrollo
+# ========================
+FROM node:20-alpine AS dev
+ARG SERVICE_NAME
+ARG FRONTEND_PORT
+ARG BACKEND_PORT
+
+# Para que Vite lea import.meta.env.VITE_SERVICE_NAME, etc.
+ENV VITE_SERVICE_NAME=$SERVICE_NAME
+ENV VITE_FRONTEND_PORT=$FRONTEND_PORT
+ENV VITE_BACKEND_PORT=$BACKEND_PORT
+
+WORKDIR /app
+COPY package.json package-lock.json ./
+RUN npm ci
+COPY . .
+
+# Exponemos el puerto de Vite (en Docker Compose lo mapeamos al host)
+EXPOSE $FRONTEND_PORT
+CMD ["npm", "run", "dev"]
+
+# ========================
+# STAGE 2: Build de producción
+# ========================
+FROM node:20-alpine AS build
+ARG SERVICE_NAME
+ARG FRONTEND_PORT
+
+ENV VITE_SERVICE_NAME=$SERVICE_NAME
+ENV VITE_FRONTEND_PORT=$FRONTEND_PORT
+ENV VITE_BACKEND_PORT=$BACKEND_PORT
+
+WORKDIR /app
+COPY package.json package-lock.json ./
+RUN npm ci
+COPY . .
+RUN npm run build
+
+# ========================
+# STAGE 3: Imagen final con Nginx
+# ========================
+FROM nginx:alpine AS prod
+
+# Copiamos la plantilla de config con variables ${SERVICE_NAME}
+COPY default.conf.template /etc/nginx/templates/default.conf.template
+
+# Recogemos el mismo SERVICE_NAME en la etapa final para envsubst
+ARG SERVICE_NAME
+ENV SERVICE_NAME=$SERVICE_NAME
+
+# Copiamos la carpeta compilada (dist) desde la etapa build
+COPY --from=build /app/dist /usr/share/nginx/html
+
+EXPOSE 80
+CMD ["sh", "-c", "envsubst < /etc/nginx/templates/default.conf.template > /etc/nginx/conf.d/default.conf && nginx -g 'daemon off;'"]

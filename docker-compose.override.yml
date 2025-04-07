@@ -7,6 +7,8 @@ services:
       args:
         SERVICE_NAME: "${SERVICE_NAME}"
         FRONTEND_PORT: "${FRONTEND_PORT}"
+        BACKEND_PORT: "${BACKEND_PORT}"
+        ENVIRONMENT: "development"
     ports:
       - "${FRONTEND_PORT}:${FRONTEND_PORT}"
     volumes:
@@ -18,7 +20,6 @@ services:
   backend:
     build:
       args:
-        VITE_SERVICE_NAME: "${SERVICE_NAME}"   
         SERVICE_NAME: "${SERVICE_NAME}"
         BACKEND_PORT: "${BACKEND_PORT}"
     ports:
