@@ -6,10 +6,12 @@
 FROM node:20-alpine AS dev
 ARG SERVICE_NAME
 ARG FRONTEND_PORT
+ARG BACKEND_PORT
 
 # Para que Vite lea import.meta.env.VITE_SERVICE_NAME, etc.
 ENV VITE_SERVICE_NAME=$SERVICE_NAME
 ENV VITE_FRONTEND_PORT=$FRONTEND_PORT
+ENV VITE_BACKEND_PORT=$BACKEND_PORT
 
 WORKDIR /app
 COPY package.json package-lock.json ./
@@ -17,7 +19,7 @@ RUN npm ci
 COPY . .
 
 # Exponemos el puerto de Vite (en Docker Compose lo mapeamos al host)
-EXPOSE 5173
+EXPOSE $FRONTEND_PORT
 CMD ["npm", "run", "dev"]
 
 # ========================
@@ -29,6 +31,7 @@ ARG FRONTEND_PORT
 
 ENV VITE_SERVICE_NAME=$SERVICE_NAME
 ENV VITE_FRONTEND_PORT=$FRONTEND_PORT
+ENV VITE_BACKEND_PORT=$BACKEND_PORT
 
 WORKDIR /app
 COPY package.json package-lock.json ./

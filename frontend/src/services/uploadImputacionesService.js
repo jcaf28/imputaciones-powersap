@@ -6,7 +6,6 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
 /**
  * Valida un archivo en el backend.
- * Fake: Por ahora devolvemos OK siempre.
  */
 export async function validateImputacionFile(file, index) {
   const formData = new FormData();

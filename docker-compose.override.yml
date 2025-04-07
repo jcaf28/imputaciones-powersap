@@ -18,6 +18,7 @@ services:
   backend:
     build:
       args:
+        VITE_SERVICE_NAME: "${SERVICE_NAME}"   
         SERVICE_NAME: "${SERVICE_NAME}"
         BACKEND_PORT: "${BACKEND_PORT}"
     ports:
