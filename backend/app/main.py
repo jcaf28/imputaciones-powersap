@@ -8,9 +8,7 @@ from app.api.routes import health, cnc, imputaciones_ip
 ENV = os.getenv("ENVIRONMENT")
 SERVICE_NAME = os.getenv("SERVICE_NAME")
 
-# En prod: usar prefijo /{SERVICE_NAME}/api
-# En dev: rutas planas /api
-BASE_PATH = f"/{SERVICE_NAME}/api" if ENV == "production" else "/api"
+BASE_PATH = f"/{SERVICE_NAME}/api"
 
 app = FastAPI()
 

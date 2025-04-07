@@ -2,8 +2,6 @@
 
 services:
   frontend:
-    environment:
-      SERVICE_NAME: "${SERVICE_NAME}"
     build:
       target: prod
       args:
