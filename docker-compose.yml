@@ -9,6 +9,7 @@ services:
     environment:
       SERVICE_NAME: "${SERVICE_NAME}"
       FRONTEND_PORT: "${FRONTEND_PORT}"
+      BACKEND_PORT: "${BACKEND_PORT}"
     depends_on:
       - backend
 

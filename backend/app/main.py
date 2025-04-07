@@ -5,7 +5,9 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.api.routes import health, cnc, imputaciones_ip
 
-SERVICE_NAME = os.environ.get("SERVICE_NAME", "no-service")
+ENV = os.getenv("ENVIRONMENT")
+SERVICE_NAME = os.getenv("SERVICE_NAME")
+
 BASE_PATH = f"/{SERVICE_NAME}/api"
 
 app = FastAPI()
@@ -21,3 +23,4 @@ app.add_middleware(
 app.include_router(health.router, prefix=BASE_PATH)
 app.include_router(cnc.router, prefix=f"{BASE_PATH}/obtencion-cnc", tags=["cnc"])
 app.include_router(imputaciones_ip.router, prefix=f"{BASE_PATH}/imputaciones-ip", tags=["imputaciones-ip"])
+
