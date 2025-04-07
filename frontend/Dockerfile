@@ -55,4 +55,4 @@ ENV SERVICE_NAME=$SERVICE_NAME
 COPY --from=build /app/dist /usr/share/nginx/html
 
 EXPOSE 80
-CMD ["sh", "-c", "envsubst < /etc/nginx/templates/default.conf.template > /etc/nginx/conf.d/default.conf && nginx -g 'daemon off;'"]
+CMD ["sh", "-c", "envsubst < /etc/nginx/templates/default.conf.template > /etc/nginx/conf.d/default.conf && cat /etc/nginx/conf.d/default.conf && nginx -g 'daemon off;'"]
