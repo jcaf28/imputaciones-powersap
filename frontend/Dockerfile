@@ -44,16 +44,13 @@ RUN npm run build
 # ========================
 FROM nginx:alpine AS prod
 
-# Copiamos la plantilla de config con variables ${SERVICE_NAME}
 COPY default.conf.template /etc/nginx/templates/default.conf.template
 
-# Recogemos el mismo SERVICE_NAME en la etapa final para envsubst
 ARG SERVICE_NAME
-ENV SERVICE_NAME=$SERVICE_NAME
+ENV SERVICE_NAME=${SERVICE_NAME}
 
-# Copiamos la carpeta compilada (dist) desde la etapa build
 COPY --from=build /app/dist /usr/share/nginx/html
 
 EXPOSE 80
-RUN echo "Contenido de plantilla default.conf.template:" && cat /etc/nginx/templates/default.conf.template
-CMD ["sh", "-c", "envsubst < /etc/nginx/templates/default.conf.template > /etc/nginx/conf.d/default.conf && cat /etc/nginx/conf.d/default.conf && nginx -g 'daemon off;'"]
+
+CMD ["sh", "-c", "echo Generando config Nginx && printenv && envsubst < /etc/nginx/templates/default.conf.template > /etc/nginx/conf.d/default.conf && cat /etc/nginx/conf.d/default.conf && nginx -g 'daemon off;'"]
