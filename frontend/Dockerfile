@@ -44,13 +44,9 @@ RUN npm run build
 # ========================
 FROM nginx:alpine AS prod
 
-COPY default.conf.template /etc/nginx/templates/default.conf.template
-
-ARG SERVICE_NAME
-ENV SERVICE_NAME=${SERVICE_NAME}
+COPY default.conf.template /etc/nginx/conf.d/default.conf
 
 COPY --from=build /app/dist /usr/share/nginx/html
 
 EXPOSE 80
-
-CMD ["sh", "-c", "echo Generando config Nginx && printenv && envsubst < /etc/nginx/templates/default.conf.template > /etc/nginx/conf.d/default.conf && cat /etc/nginx/conf.d/default.conf && nginx -g 'daemon off;'"]
+CMD ["nginx", "-g", "daemon off;"]
