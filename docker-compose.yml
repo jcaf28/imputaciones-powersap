@@ -13,6 +13,19 @@ services:
     depends_on:
       - backend
 
+  db:
+    image: postgres:15
+    container_name: postgres-local
+    environment:
+      POSTGRES_USER: myuser
+      POSTGRES_PASSWORD: mypass
+      POSTGRES_DB: mydatabase
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./pgdata:/var/lib/postgresql/data
+    restart: always
+
   backend:
     container_name: "${SERVICE_NAME}-backend"
     build:
@@ -21,3 +34,18 @@ services:
     environment:
       SERVICE_NAME: "${SERVICE_NAME}"
       BACKEND_PORT: "${BACKEND_PORT}"
+      POSTGRES_USER: myuser
+      POSTGRES_PASSWORD: mypass
+      POSTGRES_DB: mydatabase
+      POSTGRES_SERVER: db  # para que busque el contenedor "db"
+      POSTGRES_PORT: 5432
+    depends_on:
+      - db
+    ports:
+      - "${BACKEND_PORT}:${BACKEND_PORT}"
+    # Correr migrations antes de levantar Uvicorn (opcional)
+    command: >
+      bash -c "
+      alembic upgrade head &&
+      uvicorn app.main:app --host 0.0.0.0 --port ${BACKEND_PORT}
+      "
