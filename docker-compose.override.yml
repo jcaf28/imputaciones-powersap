@@ -1,6 +1,37 @@
 # PATH: docker-compose.override.yml
 
 services:
+  db:
+    container_name: "postgres-dev"
+    volumes:
+      - ./pgdata:/var/lib/postgresql/data
+
+  backend:
+    build:
+      args:
+        SERVICE_NAME: "${SERVICE_NAME}"
+        BACKEND_PORT: "${BACKEND_PORT}"
+    ports:
+      - "${BACKEND_PORT}:${BACKEND_PORT}"
+      - "5678:5678"
+    volumes:
+      - ./backend/app:/app/app
+      - ./backend/tmp:/app/tmp
+    command: [
+      "python",
+      "-m",
+      "debugpy",
+      "--listen",
+      "0.0.0.0:5678",
+      "-m",
+      "uvicorn",
+      "app.main:app",
+      "--host",
+      "0.0.0.0",
+      "--port",
+      "${BACKEND_PORT}",
+      "--reload"
+    ]
   frontend:
     build:
       target: dev
@@ -16,16 +47,3 @@ services:
     environment:
       CHOKIDAR_USEPOLLING: "true"
       CHOKIDAR_INTERVAL: "1000"
-
-  backend:
-    build:
-      args:
-        SERVICE_NAME: "${SERVICE_NAME}"
-        BACKEND_PORT: "${BACKEND_PORT}"
-    ports:
-      - "${BACKEND_PORT}:${BACKEND_PORT}"
-      - "5678:5678"
-    volumes:
-      - ./backend/app:/app/app
-      - ./backend/tmp:/app/tmp
-    command: ["python", "-m", "debugpy", "--listen", "0.0.0.0:5678", "-m", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "${BACKEND_PORT}", "--reload"]

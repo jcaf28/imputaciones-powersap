@@ -1,3 +1,5 @@
+// PATH: frontend/src/pages/Get.jsx
+
 import { useState } from 'react';
 import { getTiposOrdenes } from '../services/tiposOrdenesService';
 

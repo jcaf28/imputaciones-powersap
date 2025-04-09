@@ -1,3 +1,5 @@
+# PATH: backend/app/api/routes/tipos_ordenes.py
+
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 from app.db.session import get_db

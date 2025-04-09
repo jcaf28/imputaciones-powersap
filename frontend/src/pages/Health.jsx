@@ -1,4 +1,4 @@
-// PATH: frontend/src/pages/ObtenerFeedback.jsx
+// PATH: frontend/src/pages/Health.jsx
 
 export const meta = {
   label: "Health", // nombre para el sidebar
