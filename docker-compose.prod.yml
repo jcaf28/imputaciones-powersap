@@ -6,7 +6,7 @@ services:
     # En producción, usas un bind mount a una carpeta persistente
     # o un volumen externo/named. Ejemplo bind mount:
     volumes:
-      - /opt/myapp/pgdata:/var/lib/postgresql/data
+      - /opt/imputaciones-powersap/pgdata:/var/lib/postgresql/data
     networks:
       - proxy_net
 
