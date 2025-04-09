@@ -39,6 +39,10 @@ services:
       - "traefik.http.routers.${SERVICE_NAME}-frontend.entryPoints=websecure"
       - "traefik.http.routers.${SERVICE_NAME}-frontend.tls=true"
       - "traefik.http.services.${SERVICE_NAME}-frontend.loadbalancer.server.port=80"
+  pgadmin:
+    container_name: "pgadmin-prod"
+    networks:
+      - proxy_net
 
 networks:
   proxy_net:
