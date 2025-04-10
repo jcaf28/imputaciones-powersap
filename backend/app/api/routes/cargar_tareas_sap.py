@@ -146,7 +146,7 @@ def long_running_task(process_id: str, file_content: bytes):
                 resumen.append("🟡 No se encontraron registros nuevos para insertar.")
 
         resumen_final = "\n".join([
-            "✅ **Carga completada**",
+            "🏁Proceso finalizado",
             *resumen
         ])
 
