@@ -41,6 +41,10 @@ services:
       - "traefik.http.services.${SERVICE_NAME}-frontend.loadbalancer.server.port=80"
   pgadmin:
     container_name: "pgadmin-prod"
+    environment:
+      - "PGADMIN_PROD_PORT=${PGADMIN_PROD_PORT}"
+    ports:
+      - "${PGADMIN_PROD_PORT}:80"
     networks:
       - proxy_net
 

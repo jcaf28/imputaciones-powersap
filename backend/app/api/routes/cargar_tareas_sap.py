@@ -114,14 +114,15 @@ async def cancel_process(process_id: str):
 
 
 def long_running_task(process_id: str, file_content: bytes):
+    resumen = []  # <-- acumulador de mensajes
+
     try:
-        sse_manager.send_message(process_id, "Guardando Excel en disco temporal...")
+        sse_manager.send_message(process_id, "📁 Guardando Excel en disco temporal...")
         tmp_path = f"/tmp/{uuid.uuid4()}.xlsx"
         with open(tmp_path, "wb") as temp_file:
             temp_file.write(file_content)
 
-        sse_manager.send_message(process_id, "Leyendo datos Excel...")
-        # Opcional: leer solo las columnas que necesitas
+        sse_manager.send_message(process_id, "📊 Leyendo datos del Excel...")
         df_excel = pd.read_excel(
             tmp_path, 
             engine="openpyxl",
@@ -129,15 +130,28 @@ def long_running_task(process_id: str, file_content: bytes):
         )
         os.remove(tmp_path)
 
-        verificar_columnas_excel(df_excel, ["Operation Activity","Effectivity","Order"])
-        sse_manager.send_message(process_id, "Transformando datos...")
+        resumen.append(f"📈 Excel leído con {len(df_excel)} filas.")
 
+        verificar_columnas_excel(df_excel, ["Operation Activity","Effectivity","Order"])
+
+        sse_manager.send_message(process_id, "🔄 Transformando datos SAP...")
         df_transformed = transformar_datos_sap(df_excel)
 
-        sse_manager.send_message(process_id, "Cargando datos en la base de datos...")
+        sse_manager.send_message(process_id, "💾 Insertando en la base de datos...")
         with database_session as db:
-            cargar_datos_sap_en_db(df_transformed, db)
+            nuevos = cargar_datos_sap_en_db(df_transformed, db, process_id)
+            if nuevos > 0:
+                resumen.append(f"🟢 Insertados {nuevos} nuevos registros en SAPOrders.")
+            else:
+                resumen.append("🟡 No se encontraron registros nuevos para insertar.")
 
-        sse_manager.mark_completed(process_id, "¡Proceso completado con éxito!")
+        resumen_final = "\n".join([
+            "✅ **Carga completada**",
+            *resumen
+        ])
+
+        sse_manager.mark_completed(process_id, resumen_final)
+
     except Exception as e:
-        sse_manager.mark_error(process_id, f"Error: {str(e)}")
+        sse_manager.mark_error(process_id, f"❌ Error: {str(e)}")
+

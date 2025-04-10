@@ -3,6 +3,7 @@
 import pandas as pd
 from app.models.models import SapOrders
 from sqlalchemy.orm import Session
+from app.core.sse_manager import sse_manager
 
 def verificar_columnas_excel(df: pd.DataFrame, columnas_necesarias: list):
     """
@@ -50,15 +51,9 @@ def transformar_datos_sap(df: pd.DataFrame) -> pd.DataFrame:
     ]
     return df[columnas_modelo]
 
-def cargar_datos_sap_en_db(df: pd.DataFrame, db_session: Session):
-    """
-    Inserta en SAPOrders los registros que no existan (basado en la tupla
-    (OperationActivity, EffectivityFull, Order)).
-    """
-    # Asegurarnos de que 'Order' sea str en la DB
+def cargar_datos_sap_en_db(df: pd.DataFrame, db_session: Session, process_id: str) -> int:
     df['Order'] = df['Order'].astype(str)
 
-    # Obtenemos las combinaciones que ya existen en BD
     existentes = db_session.query(
         SapOrders.OperationActivity,
         SapOrders.EffectivityFull,
@@ -66,16 +61,12 @@ def cargar_datos_sap_en_db(df: pd.DataFrame, db_session: Session):
     ).all()
 
     existentes_set = set((op, eff, order) for op, eff, order in existentes)
-    
-    # Convertir a lista de dicts
     dict_rows = df.to_dict(orient='records')
 
-    # Filtrar filas nuevas
     nuevos_registros = []
     for row in dict_rows:
         combo = (row['OperationActivity'], row['EffectivityFull'], row['Order'])
         if combo not in existentes_set:
-            # Limpieza de NaNs
             clean_row = {
                 k: (None if pd.isna(v) else v)
                 for k, v in row.items()
@@ -85,6 +76,10 @@ def cargar_datos_sap_en_db(df: pd.DataFrame, db_session: Session):
     if nuevos_registros:
         db_session.bulk_insert_mappings(SapOrders, nuevos_registros)
         db_session.commit()
-        print(f"Insertados {len(nuevos_registros)} registros nuevos en SAPOrders.")
+        sse_manager.send_message(process_id, f"✅ Insertados {len(nuevos_registros)} registros nuevos en SAPOrders.")
+        return len(nuevos_registros)
     else:
-        print("No hay registros nuevos para insertar.")
+        sse_manager.send_message(process_id, "🟡 No hay registros nuevos para insertar.")
+        return 0
+
+

@@ -65,9 +65,24 @@ export default function CargarTareasSAP() {
         <Typography variant="body1">
           <strong>Status:</strong> {status}
         </Typography>
-        <Typography variant="body1">
-          <strong>Mensaje:</strong> {message}
+        <Typography variant="body1" gutterBottom>
+          <strong>Log del proceso:</strong>
         </Typography>
+        <div
+          style={{
+            backgroundColor: "#f5f5f5",
+            padding: "10px",
+            borderRadius: "5px",
+            fontFamily: "monospace",
+            maxHeight: "300px",
+            overflowY: "auto",
+            whiteSpace: "pre-line"
+          }}
+        >
+          {logs.map((line, index) => (
+            <div key={index}>{line}</div>
+          ))}
+        </div>
         {error && (
           <Typography variant="body1" color="error">
             <strong>Error:</strong> {error}
