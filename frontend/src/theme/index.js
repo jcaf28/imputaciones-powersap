@@ -4,6 +4,7 @@ import { createTheme } from '@mui/material/styles';
 
 const commonTypography = {
   fontFamily: 'Roboto, Arial, sans-serif',
+  fontFamilyMono: 'Roboto Mono, monospace',
   h1: { fontSize: '2.5rem', fontWeight: 700 },
   h2: { fontSize: '2.2rem', fontWeight: 700 },
   h3: { fontSize: '2rem', fontWeight: 700 },

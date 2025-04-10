@@ -1,5 +1,3 @@
-// PATH: frontend/src/hooks/useCargarTareasSap.js
-
 import { useState, useEffect } from "react";
 import { validateSapFile, startSapProcess, cancelSapProcess } from "../services/cargarTareasSapService";
 import useSSE from "./useSSE";
@@ -13,8 +11,10 @@ export default function useCargarTareasSAP() {
   const [processId, setProcessId] = useState(null);
   const [isUploading, setIsUploading] = useState(false);
   const [status, setStatus] = useState("idle"); // "idle"|"in-progress"|"completed"|"cancelled"|"error"
-  const [message, setMessage] = useState("");
   const [error, setError] = useState("");
+  
+  // NUEVO: en vez de un message único, mantenemos array de logs
+  const [logs, setLogs] = useState([]);
 
   // 3) SSE: generamos la URL si tenemos un processId
   const sseUrl = processId
@@ -32,19 +32,20 @@ export default function useCargarTareasSAP() {
     switch (type) {
       case "message":
         setStatus("in-progress");
-        setMessage(data);
+        setLogs(prev => [...prev, data]);
         break;
       case "completed":
         setStatus("completed");
-        setMessage(data);
+        setLogs(prev => [...prev, `✅ ${data}`]);
         break;
       case "cancelled":
         setStatus("cancelled");
-        setMessage(data);
+        setLogs(prev => [...prev, `🛑 ${data}`]);
         break;
       case "error":
         setStatus("error");
         setError(data);
+        setLogs(prev => [...prev, `❌ Error: ${data}`]);
         break;
       default:
         break;
@@ -52,17 +53,11 @@ export default function useCargarTareasSAP() {
   }, [events]);
 
   // ============== FUNCIONES ==============
-  /**
-   * setFileHandler: actualiza el archivo y reinicia la validación
-   */
   function setFileHandler(newFile) {
     setFile(newFile);
     setValidated(false);
   }
 
-  /**
-   * validateFile: llama al backend para verificar columnas
-   */
   async function validateFileHandler() {
     if (!file) return;
     try {
@@ -74,9 +69,6 @@ export default function useCargarTareasSAP() {
     }
   }
 
-  /**
-   * handleStartProcess: inicia el proceso SSE en backend con el archivo
-   */
   async function handleStartProcess() {
     if (!validated) {
       alert("No puedes generar si el archivo no está validado");
@@ -84,10 +76,11 @@ export default function useCargarTareasSAP() {
     }
     try {
       setIsUploading(true);
+      // Limpiar logs anteriores cada vez que arranca un proceso
+      setLogs(["Iniciando proceso..."]);
       const { process_id } = await startSapProcess(file);
       setProcessId(process_id);
       setStatus("in-progress");
-      setMessage("Iniciando proceso...");
     } catch (err) {
       alert("Error al iniciar proceso: " + err.response?.data?.detail ?? err.message);
     } finally {
@@ -95,28 +88,23 @@ export default function useCargarTareasSAP() {
     }
   }
 
-  /**
-   * handleCancel: cancela el proceso SSE
-   */
   async function handleCancel() {
     if (!processId) return;
     await cancelSapProcess(processId);
     setProcessId(null);
     setStatus("idle");
-    setMessage("");
     setError("");
+    // Conserva el log o limpialo, a gusto
+    setLogs(prev => [...prev, "Proceso cancelado por el usuario."]);
   }
-
-  // Podrías añadir un handleDownload si tu backend devolviese un archivo resultante,
-  // pero en este caso no es necesario.
 
   return {
     file,
     validated,
     isUploading,
     status,
-    message,
     error,
+    logs,
     setFileHandler,
     validateFileHandler,
     handleStartProcess,

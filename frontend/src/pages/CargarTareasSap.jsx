@@ -1,12 +1,12 @@
 // PATH: frontend/src/pages/CargarTareasSap.jsx
 
-import { useState } from "react";
-import { Button, Typography } from "@mui/material";
+import { Button, Typography, Box } from "@mui/material";
 import FileUploadChecker from "../components/FileUploadChecker";
 import useCargarTareasSAP from "../hooks/useCargarTareasSAP";
+import ProcessLogger from "../components/ProcessLogger"; // <-- nuevo
 
 export const meta = {
-  label: "Cargar tareas SAP", // para tu sidebar
+  label: "Cargar tareas SAP",
   priority: 1
 };
 
@@ -15,9 +15,9 @@ export default function CargarTareasSAP() {
     file,
     validated,
     status,
-    message,
     error,
     isUploading,
+    logs,
     setFileHandler,
     validateFileHandler,
     handleStartProcess,
@@ -25,12 +25,11 @@ export default function CargarTareasSAP() {
   } = useCargarTareasSAP();
 
   return (
-    <div style={{ margin: 20 }}>
+    <Box sx={{ p: 2 }}>
       <Typography variant="h4" gutterBottom>
         Cargar Tareas SAP
       </Typography>
 
-      {/* Puede usar tu componente FileUploadChecker o algo similar */}
       <FileUploadChecker
         label="Archivo SAP (un solo .xlsx)"
         index={0}
@@ -41,11 +40,12 @@ export default function CargarTareasSAP() {
       />
 
       {/* Botones para iniciar y cancelar */}
-      <div style={{ marginTop: 10 }}>
+      <Box sx={{ mt: 2 }}>
         <Button
           variant="contained"
           onClick={handleStartProcess}
           disabled={!validated || isUploading || status === "in-progress"}
+          sx={{ mr: 1 }}
         >
           Iniciar proceso
         </Button>
@@ -54,41 +54,25 @@ export default function CargarTareasSAP() {
           variant="outlined"
           onClick={handleCancel}
           disabled={!file || status !== "in-progress"}
-          style={{ marginLeft: 8 }}
         >
           Cancelar
         </Button>
-      </div>
+      </Box>
 
-      {/* Estado */}
-      <div style={{ marginTop: 10 }}>
-        <Typography variant="body1">
+      {/* Estado y logger */}
+      <Box sx={{ mt: 2 }}>
+        <Typography variant="body1" sx={{ mb: 1 }}>
           <strong>Status:</strong> {status}
         </Typography>
-        <Typography variant="body1" gutterBottom>
-          <strong>Log del proceso:</strong>
-        </Typography>
-        <div
-          style={{
-            backgroundColor: "#f5f5f5",
-            padding: "10px",
-            borderRadius: "5px",
-            fontFamily: "monospace",
-            maxHeight: "300px",
-            overflowY: "auto",
-            whiteSpace: "pre-line"
-          }}
-        >
-          {logs.map((line, index) => (
-            <div key={index}>{line}</div>
-          ))}
-        </div>
+
+        <ProcessLogger logs={logs} title="Log del proceso" />
+
         {error && (
-          <Typography variant="body1" color="error">
+          <Typography variant="body1" color="error" sx={{ mt: 2 }}>
             <strong>Error:</strong> {error}
           </Typography>
         )}
-      </div>
-    </div>
+      </Box>
+    </Box>
   );
 }
