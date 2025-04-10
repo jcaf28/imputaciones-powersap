@@ -19,62 +19,53 @@ import pandas as pd
 router = APIRouter()
 
 REQUIRED_COLUMNS = ["Operation Activity", "Effectivity", "Order"]
+VALIDATED_FILES = {}  # dict[str, bytes]
 
 @router.post("/validate-file")
 async def validate_file(file: UploadFile = File(...)):
-    """
-    Sube un archivo Excel, lo guarda temporalmente y valida que contenga las columnas necesarias.
-    Si algo falla, se lanza excepción con HTTP 400.
-    """
     if not file.filename.endswith(".xlsx"):
         raise HTTPException(status_code=400, detail="El archivo debe ser .xlsx")
 
-    import uuid, os
+    content = await file.read()  # ← leemos en memoria
 
-    # Ruta temporal
-    tmp_path = f"/tmp/validate_{uuid.uuid4()}_{file.filename}"
+    # Validación
     try:
-        # Guardar a disco
-        with open(tmp_path, "wb") as f_out:
-            content = await file.read()
-            f_out.write(content)
-
-        # Leer desde disco (más rápido que usar BytesIO)
-        df = pd.read_excel(tmp_path, engine="openpyxl")
-
-        # Validar columnas requeridas
+        df = pd.read_excel(BytesIO(content), engine="openpyxl")
         verificar_columnas_excel(df, REQUIRED_COLUMNS)
-
-        return {"message": "Archivo válido"}
-
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"Error procesando el archivo: {str(e)}")
 
-    finally:
-        # Limpieza del archivo temporal
-        if os.path.exists(tmp_path):
-            os.remove(tmp_path)
+    # Si llega aquí, está validado. Generamos un token.
+    token = str(uuid.uuid4())
+    # Guardamos el contenido binario en la memoria global
+    VALIDATED_FILES[token] = content
+
+    return {"message": "Archivo válido", "token": token}
+
 
 @router.post("/start")
 async def start_carga_tareas_sap(
-    file: UploadFile = File(...),
+    token: str = Query(...),
     background_tasks: BackgroundTasks = None
 ):
     """
     Inicia la carga de datos SAP (transform + load) usando SSE para informar progreso.
+    En vez de subir un archivo, esperamos un 'token' de la validación previa.
     """
-    if not file.filename.endswith(".xlsx"):
-        raise HTTPException(status_code=400, detail="El archivo debe ser .xlsx")
+    if token not in VALIDATED_FILES:
+        raise HTTPException(status_code=400, detail="Token no encontrado o archivo no validado")
 
     process_id = str(uuid.uuid4())
     sse_manager.start_process(process_id)
 
-    # Leemos el contenido *una vez* y se lo pasamos al background task
-    content = await file.read()
+    # Recuperar el contenido binario
+    content = VALIDATED_FILES[token]
 
-    # Agregamos la tarea en segundo plano
-    background_tasks.add_task(long_running_task, process_id, content)
+    # No lo borramos aún. Lo borramos después de procesar, o en cancel / discard
+    # Para borrarlo en este paso, descomentar:
+    # del VALIDATED_FILES[token]
 
+    background_tasks.add_task(long_running_task, process_id, content, token)
     return {"process_id": process_id}
 
 
@@ -113,7 +104,7 @@ async def cancel_process(process_id: str):
     return {"message": "Proceso no encontrado"}
 
 
-def long_running_task(process_id: str, file_content: bytes):
+def long_running_task(process_id: str, file_content: bytes, token: str):
     resumen = []  # <-- acumulador de mensajes
 
     try:
@@ -129,10 +120,8 @@ def long_running_task(process_id: str, file_content: bytes):
             usecols=["Operation Activity","Effectivity","Order"]
         )
         os.remove(tmp_path)
-
-        resumen.append(f"📈 Excel leído con {len(df_excel)} filas.")
-
-        verificar_columnas_excel(df_excel, ["Operation Activity","Effectivity","Order"])
+        
+        sse_manager.send_message(process_id, f"📈 Excel leído con {len(df_excel)} filas.")
 
         sse_manager.send_message(process_id, "🔄 Transformando datos SAP...")
         df_transformed = transformar_datos_sap(df_excel)
@@ -141,17 +130,36 @@ def long_running_task(process_id: str, file_content: bytes):
         with database_session as db:
             nuevos = cargar_datos_sap_en_db(df_transformed, db, process_id)
             if nuevos > 0:
-                resumen.append(f"🟢 Insertados {nuevos} nuevos registros en SAPOrders.")
+                sse_manager.send_message(process_id, f"🟢 Insertados {nuevos} nuevos registros en SAPOrders.")
+                resumen.append(f" Insertados {nuevos} nuevos registros en SAPOrders.")
             else:
+                sse_manager.send_message(process_id, "🟡 No se encontraron registros nuevos para insertar.")
                 resumen.append("🟡 No se encontraron registros nuevos para insertar.")
 
-        resumen_final = "\n".join([
+        resumen_final = ". ".join([
             "🏁Proceso finalizado",
             *resumen
         ])
 
+        # Al final, eliminamos de la memoria para no ocupar espacio
+        if token in VALIDATED_FILES:
+            del VALIDATED_FILES[token]
+
+        sse_manager.send_message(process_id, resumen_final)
         sse_manager.mark_completed(process_id, resumen_final)
 
     except Exception as e:
-        sse_manager.mark_error(process_id, f"❌ Error: {str(e)}")
+        # si falla, también podríamos borrar
+        if token in VALIDATED_FILES:
+            del VALIDATED_FILES[token]
+        sse_manager.mark_error(process_id, f"Error: {str(e)}")
 
+@router.post("/discard")
+def discard_file(token: str = Query(...)):
+    """
+    Descarta el archivo validado de la memoria, si existe.
+    """
+    if token in VALIDATED_FILES:
+        del VALIDATED_FILES[token]
+        return {"message": "Archivo descartado"}
+    return {"message": "No se encontró un archivo con ese token"}

@@ -76,7 +76,6 @@ def cargar_datos_sap_en_db(df: pd.DataFrame, db_session: Session, process_id: st
     if nuevos_registros:
         db_session.bulk_insert_mappings(SapOrders, nuevos_registros)
         db_session.commit()
-        sse_manager.send_message(process_id, f"✅ Insertados {len(nuevos_registros)} registros nuevos en SAPOrders.")
         return len(nuevos_registros)
     else:
         sse_manager.send_message(process_id, "🟡 No hay registros nuevos para insertar.")

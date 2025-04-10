@@ -1,12 +1,12 @@
 // PATH: frontend/src/services/cargarTareasSapService.js
-
 import axios from "axios";
 
-// Base URL, p. ej. VITE_API_BASE_URL="http://localhost:8000/mi-servicio/api"
 const BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
+/**
+ * 1) Valida el archivo y devuelve { message, token }
+ */
 export async function validateSapFile(file) {
-  // Endpoint POST /cargar-tareas-sap/validate-file
   const formData = new FormData();
   formData.append("file", file);
 
@@ -19,28 +19,26 @@ export async function validateSapFile(file) {
       },
     }
   );
+  // La respuesta deberá ser { message: "Archivo válido", token: "..."}
   return response.data; 
 }
 
-export async function startSapProcess(file) {
-  // Endpoint POST /cargar-tareas-sap/start
-  const formData = new FormData();
-  formData.append("file", file);
-
+/**
+ * 2) Inicia el proceso SSE usando el token devuelto por validateSapFile
+ */
+export async function startSapProcess(token) {
+  // Mandamos un POST sin archivo, sólo param
   const response = await axios.post(
-    `${BASE_URL}/cargar-tareas-sap/start`,
-    formData,
-    {
-      headers: {
-        "Content-Type": "multipart/form-data",
-      },
-    }
+    `${BASE_URL}/cargar-tareas-sap/start?token=${token}`
   );
-  return response.data; // debería devolver { process_id }
+  // Respuesta: { process_id: "..." }
+  return response.data;
 }
 
+/**
+ * 3) Cancela el proceso SSE
+ */
 export async function cancelSapProcess(processId) {
-  // Endpoint POST /cargar-tareas-sap/cancel/{process_id}
   const response = await axios.post(
     `${BASE_URL}/cargar-tareas-sap/cancel/${processId}`
   );

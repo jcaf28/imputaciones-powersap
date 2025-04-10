@@ -5,6 +5,7 @@ import useSSE from "./useSSE";
 export default function useCargarTareasSAP() {
   // 1) Estados para el archivo y su validación
   const [file, setFile] = useState(null);
+  const [token, setToken] = useState(null);
   const [validated, setValidated] = useState(false);
 
   // 2) Estado del proceso SSE
@@ -61,11 +62,13 @@ export default function useCargarTareasSAP() {
   async function validateFileHandler() {
     if (!file) return;
     try {
-      await validateSapFile(file);
+      const response = await validateSapFile(file);
       setValidated(true);
+      setToken(response.token); // 👈 asegúrate de que el backend lo devuelve
     } catch (err) {
-      alert("Error validando el archivo: " + err.response?.data?.detail ?? err.message);
+      alert("Error validando el archivo: " + (err.response?.data?.detail ?? err.message));
       setValidated(false);
+      setToken(null); // por si acaso
     }
   }
 
@@ -78,7 +81,7 @@ export default function useCargarTareasSAP() {
       setIsUploading(true);
       // Limpiar logs anteriores cada vez que arranca un proceso
       setLogs(["Iniciando proceso..."]);
-      const { process_id } = await startSapProcess(file);
+      const { process_id } = await startSapProcess(token);
       setProcessId(process_id);
       setStatus("in-progress");
     } catch (err) {
