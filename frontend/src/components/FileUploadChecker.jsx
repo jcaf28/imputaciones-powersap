@@ -3,6 +3,7 @@
 import { Box, Button, TextField, Typography } from "@mui/material";
 import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
 import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline";
+import { CircularProgress } from "@mui/material";
 import { useEffect } from "react";
 
 export default function FileUploadChecker({
@@ -40,7 +41,7 @@ export default function FileUploadChecker({
         />
       ) : file ? (
         // Si hay un archivo pero aún no está validado
-        <ErrorOutlineIcon
+        <CircularProgress
           sx={{ color: "gray", ml: 1, verticalAlign: "middle" }}
         />
       ) : null}
