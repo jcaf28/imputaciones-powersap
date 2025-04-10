@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { validateSapFile, startSapProcess, cancelSapProcess } from "../services/cargarTareasSapService";
 import useSSE from "./useSSE";
 
-export default function useCargarTareasSAP() {
+export default function useCargarTareasSap() {
   // 1) Estados para el archivo y su validación
   const [file, setFile] = useState(null);
   const [token, setToken] = useState(null);
