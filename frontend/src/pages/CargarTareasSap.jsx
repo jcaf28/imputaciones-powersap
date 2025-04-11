@@ -1,6 +1,6 @@
 // PATH: frontend/src/pages/CargarTareasSap.jsx
 
-import { Button, Typography, Box } from "@mui/material";
+import { Button, Typography, Box, CircularProgress } from "@mui/material";
 import FileUploadChecker from "../components/FileUploadChecker";
 import useCargarTareasSap from "../hooks/useCargarTareasSap";
 import ProcessLogger from "../components/ProcessLogger"; // <-- nuevo
@@ -64,6 +64,13 @@ export default function CargarTareasSAP() {
         <Typography variant="body1" sx={{ mb: 1 }}>
           <strong>Status:</strong> {status}
         </Typography>
+
+        {status === "in-progress" && (
+          <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", gap: 1, mb: 2 }}>
+            <CircularProgress size={20} />
+            <Typography variant="body2">Procesando...</Typography>
+          </Box>
+        )}
 
         <ProcessLogger logs={logs} title="Log del proceso" />
 
