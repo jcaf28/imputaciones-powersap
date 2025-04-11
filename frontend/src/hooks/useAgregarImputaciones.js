@@ -1,10 +1,10 @@
-// PATH: frontend/src/hooks/useCargarTareasSap.js
+// PATH: frontend/src/hooks/useAgregarImputaciones.js
 
 import { useState, useEffect } from "react";
-import { validateSapFile, startSapProcess, cancelSapProcess } from "../services/cargarTareasSapService";
+import { validateImputacionesFile, startImputacionesProcess, cancelImputacionesProcess } from "../services/agregarImputacionesService";
 import useSSE from "./useSSE";
 
-export default function useCargarTareasSap() {
+export default function useAgregarImputaciones() {
   // 1) Estados para el archivo y su validación
   const [file, setFile] = useState(null);
   const [token, setToken] = useState(null);
@@ -13,15 +13,15 @@ export default function useCargarTareasSap() {
   // 2) Estado del proceso SSE
   const [processId, setProcessId] = useState(null);
   const [isUploading, setIsUploading] = useState(false);
-  const [status, setStatus] = useState("idle"); // "idle"|"in-progress"|"completed"|"cancelled"|"error"
+  const [status, setStatus] = useState("idle"); 
   const [error, setError] = useState("");
-  
-  // NUEVO: en vez de un message único, mantenemos array de logs
+
+  // Logs SSE (cada mensaje que llega del backend)
   const [logs, setLogs] = useState([]);
 
   // 3) SSE: generamos la URL si tenemos un processId
   const sseUrl = processId
-    ? `${import.meta.env.VITE_API_BASE_URL}/cargar-tareas-sap/events/${processId}`
+    ? `${import.meta.env.VITE_API_BASE_URL}/agregar-imputaciones/events/${processId}`
     : null;
   const { events } = useSSE(sseUrl);
 
@@ -35,20 +35,20 @@ export default function useCargarTareasSap() {
     switch (type) {
       case "message":
         setStatus("in-progress");
-        setLogs(prev => [...prev, data]);
+        setLogs((prev) => [...prev, data]);
         break;
       case "completed":
         setStatus("completed");
-        setLogs(prev => [...prev, `✅ ${data}`]);
+        setLogs((prev) => [...prev, `✅ ${data}`]);
         break;
       case "cancelled":
         setStatus("cancelled");
-        setLogs(prev => [...prev, `🛑 ${data}`]);
+        setLogs((prev) => [...prev, `🛑 ${data}`]);
         break;
       case "error":
         setStatus("error");
         setError(data);
-        setLogs(prev => [...prev, `❌ Error: ${data}`]);
+        setLogs((prev) => [...prev, `❌ Error: ${data}`]);
         break;
       default:
         break;
@@ -56,6 +56,7 @@ export default function useCargarTareasSap() {
   }, [events]);
 
   // ============== FUNCIONES ==============
+
   function setFileHandler(newFile) {
     setFile(newFile);
     setValidated(false);
@@ -64,30 +65,29 @@ export default function useCargarTareasSap() {
   async function validateFileHandler() {
     if (!file) return;
     try {
-      const response = await validateSapFile(file);
+      const response = await validateImputacionesFile(file);
       setValidated(true);
-      setToken(response.token); // 👈 asegúrate de que el backend lo devuelve
+      setToken(response.token);
     } catch (err) {
       alert("Error validando el archivo: " + (err.response?.data?.detail ?? err.message));
       setValidated(false);
-      setToken(null); // por si acaso
+      setToken(null);
     }
   }
 
   async function handleStartProcess() {
     if (!validated) {
-      alert("No puedes generar si el archivo no está validado");
+      alert("No puedes iniciar si el archivo no está validado");
       return;
     }
     try {
       setIsUploading(true);
-      // Limpiar logs anteriores cada vez que arranca un proceso
       setLogs(["Iniciando proceso..."]);
-      const { process_id } = await startSapProcess(token);
+      const { process_id } = await startImputacionesProcess(token);
       setProcessId(process_id);
       setStatus("in-progress");
     } catch (err) {
-      alert("Error al iniciar proceso: " + err.response?.data?.detail ?? err.message);
+      alert("Error al iniciar proceso: " + (err.response?.data?.detail ?? err.message));
     } finally {
       setIsUploading(false);
     }
@@ -95,12 +95,11 @@ export default function useCargarTareasSap() {
 
   async function handleCancel() {
     if (!processId) return;
-    await cancelSapProcess(processId);
+    await cancelImputacionesProcess(processId);
     setProcessId(null);
     setStatus("idle");
     setError("");
-    // Conserva el log o limpialo, a gusto
-    setLogs(prev => [...prev, "Proceso cancelado por el usuario."]);
+    setLogs((prev) => [...prev, "Proceso cancelado por el usuario."]);
   }
 
   return {
@@ -113,6 +112,6 @@ export default function useCargarTareasSap() {
     setFileHandler,
     validateFileHandler,
     handleStartProcess,
-    handleCancel,
+    handleCancel
   };
 }

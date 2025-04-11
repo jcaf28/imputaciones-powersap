@@ -6,7 +6,6 @@ import uuid
 import asyncio
 import pandas as pd
 from io import BytesIO
-import time
 
 from app.core.sse_manager import sse_manager
 from app.db.session import database_session

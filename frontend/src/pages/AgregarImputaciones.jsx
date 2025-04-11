@@ -1,59 +1,93 @@
 // PATH: frontend/src/pages/AgregarImputaciones.jsx
 
-import { Box, Typography } from "@mui/material";
-import useImputacionesIP from "../hooks/useImputacionesIP";
-import ImputacionesIPForm from "../components/ImputacionesIPForm";
-import ImputacionesIPStatus from "../components/ImputacionesIPStatus";
+import { Button, Typography, Box, CircularProgress } from "@mui/material";
+import FileUploadChecker from "../components/FileUploadChecker";
+import ProcessLogger from "../components/ProcessLogger"; 
+import useAgregarImputaciones from "../hooks/useAgregarImputaciones";
 
 export const meta = {
   label: "Agregar Imputaciones", // nombre para el sidebar
-  priority: 2              // orden de aparición
+  priority: 2
 };
 
-export default function ImputacionesIP() {
+export default function AgregarImputaciones() {
   const {
-    files,
-    validations,
-    setFile,
-    validateFile,
-    canGenerate,
-    isUploading,
+    file,
+    validated,
     status,
-    message,
     error,
-    handleGenerate,
-    handleCancel,
-    handleDownload,
-  } = useImputacionesIP();
+    logs,
+    isUploading,
+    setFileHandler,
+    validateFileHandler,
+    handleStartProcess,
+    handleCancel
+  } = useAgregarImputaciones();
 
   return (
-    <Box sx={{ textAlign: "center" }}>
-      <Typography variant="h5" sx={{ mb:2, mt: 4, fontWeight: "bold", textTransform: "uppercase", letterSpacing: 1 }}>
-        Generador de Imputaciones SAP
+    <Box sx={{ p: 2 }}>
+      <Typography variant="h4" gutterBottom>
+        Agregar Imputaciones
       </Typography>
 
-      <Typography variant="body1" sx={{ mt: 1, maxWidth: 600, mx: "auto", color: "text.secondary" }}>
-        Esta herramienta permite validar los archivos de cierre del departamento IP y generar automáticamente los ficheros de imputación compatibles con SAP. Sigue los pasos a continuación para cargar los datos y obtener los archivos de imputaciones con el formato de SAP
-      </Typography>
-
-      <ImputacionesIPForm
-        files={files}
-        validations={validations}
-        setFile={setFile}
-        validateFile={validateFile}
-        canGenerate={canGenerate}
-        onGenerate={handleGenerate}
-        isUploading={isUploading}
+      <FileUploadChecker
+        label="Archivo Imputaciones (.xlsx)"
+        index={0}
+        file={file}
+        validated={validated}
+        onFileChange={(_index, uploadedFile) => setFileHandler(uploadedFile)}
+        onValidate={validateFileHandler}
       />
 
-      <ImputacionesIPStatus
-        status={status}
-        message={message}
-        error={error}
-        isUploading={isUploading}
-        onCancel={handleCancel}
-        onDownload={handleDownload}
-      />
+      {/* Botones para iniciar y cancelar */}
+      <Box sx={{ mt: 2 }}>
+        <Button
+          variant="contained"
+          onClick={handleStartProcess}
+          disabled={!validated || isUploading || status === "in-progress"}
+          sx={{ mr: 1 }}
+        >
+          Iniciar proceso
+        </Button>
+
+        <Button
+          variant="outlined"
+          onClick={handleCancel}
+          disabled={!file || status !== "in-progress"}
+        >
+          Cancelar
+        </Button>
+      </Box>
+
+      {/* Estado + Logger */}
+      <Box sx={{ mt: 2 }}>
+        <Typography variant="body1" sx={{ mb: 1 }}>
+          <strong>Status:</strong> {status}
+        </Typography>
+
+        {status === "in-progress" && (
+          <Box
+            sx={{
+              display: "flex",
+              justifyContent: "center",
+              alignItems: "center",
+              gap: 1,
+              mb: 2
+            }}
+          >
+            <CircularProgress size={20} />
+            <Typography variant="body2">Procesando...</Typography>
+          </Box>
+        )}
+
+        <ProcessLogger logs={logs} title="Log del proceso" />
+
+        {error && (
+          <Typography variant="body1" color="error" sx={{ mt: 2 }}>
+            <strong>Error:</strong> {error}
+          </Typography>
+        )}
+      </Box>
     </Box>
   );
 }
