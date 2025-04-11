@@ -115,7 +115,7 @@ def long_running_task(process_id: str, df_excel: pd.DataFrame, token: str):
         if token in VALIDATED_DFS:
             del VALIDATED_DFS[token]
 
-        sse_manager.mark_completed(process_id, "🏁 Proceso finalizado. Insertados {nuevos} nuevos registros en SAPOrders.")
+        sse_manager.mark_completed(process_id, f"🏁 Proceso finalizado. Insertados {nuevos} nuevos registros en SAPOrders.")
     except Exception as e:
         if token in VALIDATED_DFS:
             del VALIDATED_DFS[token]
