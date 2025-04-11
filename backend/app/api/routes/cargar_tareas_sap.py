@@ -6,6 +6,7 @@ import uuid
 import asyncio
 import pandas as pd
 from io import BytesIO
+import time
 
 from app.core.sse_manager import sse_manager
 from app.db.session import database_session
@@ -107,13 +108,14 @@ def long_running_task(process_id: str, df_excel: pd.DataFrame, token: str):
             nuevos = cargar_datos_sap_en_db(df_transformed, db, process_id)
             if nuevos > 0:
                 sse_manager.send_message(process_id, f"🟢 Insertados {nuevos} nuevos registros en SAPOrders.")
+                time.sleep(0.1)
             else:
                 sse_manager.send_message(process_id, "🟡 No se encontraron registros nuevos para insertar.")
+                time.sleep(0.1)
 
         # Al final, eliminamos de la memoria para no ocupar espacio
         if token in VALIDATED_DFS:
             del VALIDATED_DFS[token]
-
         sse_manager.mark_completed(process_id, "🏁 Proceso finalizado.")
     except Exception as e:
         if token in VALIDATED_DFS:
