@@ -1,4 +1,4 @@
-# PATH: app/service/etl/_load_datos_excel.py
+# PATH: backend/app/services/etl_inmemory/_load_datos_excel.py
 
 import pandas as pd
 from app.models.models import Extraciclos

@@ -1,4 +1,4 @@
-# PATH: app/services/etl_inmemory/transformar_datos_excel_inmemory.py
+# PATH: backend/app/services/etl_inmemory/transformar_datos_excel_inmemory.py
 
 def transformar_datos_excel_inmemory(df):
     import pandas as pd

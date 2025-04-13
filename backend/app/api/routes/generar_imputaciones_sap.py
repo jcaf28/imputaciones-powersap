@@ -1,11 +1,19 @@
 # PATH: backend/app/api/routes/generar_imputaciones_sap.py
 
-from fastapi import APIRouter, Request, BackgroundTasks, HTTPException
+from fastapi import APIRouter, Depends, Request, BackgroundTasks, HTTPException
 from fastapi.responses import StreamingResponse, Response
 from typing import Dict, Any, List
 import uuid
 import time
 import asyncio
+from sqlalchemy.orm import Session
+
+from app.db.session import database_session
+from app.db.session import get_db
+from app.models.models import Imputaciones
+
+from app.services.generar_imputaciones_sap.pending_imputaciones import get_imputaciones_pendientes
+
 
 router = APIRouter()
 
@@ -44,10 +52,9 @@ SESSIONS: Dict[str, Dict[str, Any]] = {}
 
 # ================== ENDPOINTS ===================
 
-@router.get("/list")
-def get_list() -> List[Dict[str, Any]]:
-    return FAKE_DATA
-
+@router.get("/list", response_model=List[Dict[str, Any]])
+def list_pending_imputaciones(db: Session = Depends(get_db)):
+    return get_imputaciones_pendientes(db)
 
 @router.post("/start")
 def start_process(background_tasks: BackgroundTasks):
