@@ -147,7 +147,7 @@ def long_running_inmemory(process_id: str, df: pd.DataFrame):
         COMPLETED_FILES[process_id] = filepath
 
         # Mensaje final
-        mensaje_final = ( f"✅ Proceso finalizado. "
+        mensaje_final = ( f"Proceso finalizado. "
                           f"Filas totales: {summary['total']}, "
                           f"exitosas: {summary['success']}, "
                           f"fallidas: {summary['fail']}.")

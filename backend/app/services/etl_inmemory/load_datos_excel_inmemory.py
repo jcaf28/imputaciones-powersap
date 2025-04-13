@@ -100,8 +100,8 @@ def load_datos_excel_inmemory(df, db_session=None, sse_process_id=None, summary=
                 summary["fail"] += 1
                 df.at[index, "Status"] = "FAIL"
                 df.at[index, "error_message"] = msg
-                if sse_process_id:
-                    sse_manager.send_message(sse_process_id, f"❌ Fila {index+2}: {msg}")
+                # if sse_process_id:
+                #     sse_manager.send_message(sse_process_id, f"❌ Fila {index+2}: {msg}")
 
             except Exception as e:
                 db.rollback()
@@ -110,8 +110,8 @@ def load_datos_excel_inmemory(df, db_session=None, sse_process_id=None, summary=
                 summary["fail"] += 1
                 df.at[index, "Status"] = "FAIL"
                 df.at[index, "error_message"] = msg
-                if sse_process_id:
-                    sse_manager.send_message(sse_process_id, f"❌ Fila {index+2}: {msg}")
+                # if sse_process_id:
+                #     sse_manager.send_message(sse_process_id, f"❌ Fila {index+2}: {msg}")
 
     print(f"Proceso finalizado. Nuevos registros: {nuevos_registros}")
     if sse_process_id:
