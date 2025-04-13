@@ -1,6 +1,10 @@
 # PATH: app/services/etl_inmemory/load_datos_excel_inmemory.py
 
-def load_datos_excel_inmemory(df, db_session=None, sse_process_id=None):
+def load_datos_excel_inmemory(df, db_session=None, sse_process_id=None, summary=None):
+    """
+    Procesa el DF, inserta en BD, anota Status y error_message en cada fila.
+    Devuelve df_result con columns extra => 'Status', 'error_message'
+    """
     import pandas as pd
     from datetime import datetime
     from sqlalchemy import func
@@ -9,29 +13,23 @@ def load_datos_excel_inmemory(df, db_session=None, sse_process_id=None):
     from app.db.session import database_session
     from app.models.models import Imputaciones
     from ._load_datos_excel import (
-        intercambiar_tareas,
         verificar_duplicados,
-        change_dtypes,
         existe_combinacion_area_tarea
     )
     from app.core.sse_manager import sse_manager
+
+    if summary is None:
+        summary = {"total": len(df), "success": 0, "fail": 0}
+
+    # Creamos dos columnas extra en df => 'Status' y 'error_message'
+    df["Status"] = None
+    df["error_message"] = None
 
     print("Cargando datos en BD... (inmemory)")
     if sse_process_id:
         sse_manager.send_message(sse_process_id, "📥 Preparando datos...")
 
-    # 1) Conversión de fecha + filtrado de futuros
-    if 'FechaImp' in df.columns:
-        df['FechaImp'] = pd.to_datetime(df['FechaImp'], format='%d/%m/%Y', errors='coerce')
-        df = df.dropna(subset=['FechaImp'])
-        df = df[df['FechaImp'] <= pd.to_datetime(datetime.now().date())]
-
-    # 2) Ajustar dtypes, quitar duplicados, etc.
-    df = change_dtypes(df)
-    df = df.replace('None', None)
-    df = intercambiar_tareas(df)
-    df = verificar_duplicados(df)  # ← crea la columna 'dup_count'
-    df = df.replace('None', None)
+    df=verificar_duplicados(df)
 
     nuevos_registros = 0
     errores = []
@@ -40,7 +38,6 @@ def load_datos_excel_inmemory(df, db_session=None, sse_process_id=None):
     with session as db:
         for index, row in df.iterrows():
             try:
-                # Contar cuántos registros idénticos hay en BD
                 existing_count = db.query(func.count(Imputaciones.ID)).filter(
                     Imputaciones.CodEmpleado == row.get('CodEmpleado'),
                     Imputaciones.FechaImp == row.get('FechaImp'),
@@ -56,14 +53,10 @@ def load_datos_excel_inmemory(df, db_session=None, sse_process_id=None):
                     Imputaciones.TipoIndirecto == row.get('TipoIndirecto')
                 ).scalar()
 
-                # Cuántas veces Excel dice que aparece: 'dup_count'
-                # (ya calculado en verificar_duplicados)
                 wanted_count = int(row.get('dup_count', 1))
 
                 if existing_count < wanted_count:
-                    # Nos faltan (wanted_count - existing_count) filas para igualar
-                    # Pero insertamos "de una en una" cada vez que se ejecute esta fila
-                    # => Insertar 1 más
+                    # Insertar
                     combinacion_valida = existe_combinacion_area_tarea(
                         row.get('CentroTrabajo'),
                         row.get('TareaAsoc'),
@@ -90,29 +83,35 @@ def load_datos_excel_inmemory(df, db_session=None, sse_process_id=None):
                     )
                     db.add(imputacion)
                     db.commit()
-                    nuevos_registros += 1
 
-                    # print(f"✅ Fila {index+2}: insertada (existing_count={existing_count}, wanted_count={wanted_count}).")
+                    nuevos_registros += 1
+                    summary["success"] += 1
+                    df.at[index, "Status"] = "OK"
+                    df.at[index, "error_message"] = ""
                 else:
-                    # existing_count >= wanted_count
-                    if sse_process_id:
-                        sse_manager.send_message(sse_process_id, f"⚠️ Fila {index+2}: ya hay {existing_count} en BD y Excel pide {wanted_count}, no se inserta.")
+                    df.at[index, "Status"] = "SKIPPED"
+                    df.at[index, "error_message"] = f"Ya hay {existing_count} en BD, wanted={wanted_count}"
+                    summary["fail"] += 1
 
             except IntegrityError as e:
                 db.rollback()
-                error_msg = f"❌ Fila {index+2}: error de integridad ({str(e.orig).splitlines()[0]})"
-                # print(error_msg)
-                errores.append(error_msg)
+                msg = f"error de integridad ({str(e.orig).splitlines()[0]})"
+                errores.append(f"Fila {index+2}: {msg}")
+                summary["fail"] += 1
+                df.at[index, "Status"] = "FAIL"
+                df.at[index, "error_message"] = msg
                 if sse_process_id:
-                    sse_manager.send_message(sse_process_id, error_msg)
+                    sse_manager.send_message(sse_process_id, f"❌ Fila {index+2}: {msg}")
 
             except Exception as e:
                 db.rollback()
-                error_msg = f"❌ Fila {index+2}: error inesperado ({str(e)})"
-                print(error_msg)
-                errores.append(error_msg)
+                msg = f"error inesperado: {str(e)}"
+                errores.append(f"Fila {index+2}: {msg}")
+                summary["fail"] += 1
+                df.at[index, "Status"] = "FAIL"
+                df.at[index, "error_message"] = msg
                 if sse_process_id:
-                    sse_manager.send_message(sse_process_id, error_msg)
+                    sse_manager.send_message(sse_process_id, f"❌ Fila {index+2}: {msg}")
 
     print(f"Proceso finalizado. Nuevos registros: {nuevos_registros}")
     if sse_process_id:
@@ -123,4 +122,4 @@ def load_datos_excel_inmemory(df, db_session=None, sse_process_id=None):
         for err in errores:
             print(err)
 
-    return nuevos_registros
+    return df  # ← devolvemos el DataFrame con las columnas Status / error_message

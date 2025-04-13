@@ -109,6 +109,7 @@ export default function useAgregarImputaciones() {
     status,
     error,
     logs,
+    processId,
     setFileHandler,
     validateFileHandler,
     handleStartProcess,

@@ -4,6 +4,7 @@ import { Button, Typography, Box, CircularProgress } from "@mui/material";
 import FileUploadChecker from "../components/FileUploadChecker";
 import ProcessLogger from "../components/ProcessLogger"; 
 import useAgregarImputaciones from "../hooks/useAgregarImputaciones";
+import { downloadImputacionesFile } from "../services/agregarImputacionesService";
 
 export const meta = {
   label: "Agregar Imputaciones", // nombre para el sidebar
@@ -18,6 +19,7 @@ export default function AgregarImputaciones() {
     error,
     logs,
     isUploading,
+    processId,
     setFileHandler,
     validateFileHandler,
     handleStartProcess,
@@ -88,6 +90,17 @@ export default function AgregarImputaciones() {
           </Typography>
         )}
       </Box>
+      {
+        status === "completed" && (
+          <Button
+            variant="contained"
+            onClick={() => downloadImputacionesFile(processId)}
+            sx={{ mt: 2 }}
+          >
+            Descargar Excel Resultado
+          </Button>
+        )
+      }
     </Box>
   );
 }

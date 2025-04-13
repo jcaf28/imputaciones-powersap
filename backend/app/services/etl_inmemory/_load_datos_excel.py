@@ -36,22 +36,6 @@ def verificar_duplicados(df):
 
     return df
 
-def change_dtypes(df):
-    df['CodEmpleado'] = df['CodEmpleado'].astype(str).str.replace('.0', '', regex=False)
-    df['Timpu'] = df['Timpu'].astype(str).str.replace('.0', '', regex=False)
-    df['Horas'] = df['Horas'].astype(float).round(2)
-    df['Proyecto'] = df['Proyecto'].astype(str).str.replace('.0', '', regex=False)
-    df['TipoCoche'] = df['TipoCoche'].astype(str)
-    df['NumCoche'] = df['NumCoche'].astype(str).str.replace('.0', '', regex=False)
-    df['CentroTrabajo'] = df['CentroTrabajo'].astype(str).str.replace('.0', '', regex=False)
-    df['Tarea'] = df['Tarea'].astype(str).str.replace('.0', '', regex=False)
-    df['TareaAsoc'] = df['TareaAsoc'].astype(str).str.replace('.0', '', regex=False)
-    df['TipoMotivo'] = df['TipoMotivo'].astype(str).str.replace('.0', '', regex=False)
-    df['TipoIndirecto'] = df['TipoIndirecto'].astype(str).str.replace('.0', '', regex=False)
-
-
-    return(df)
-
 
 def existe_combinacion_area_tarea(centro_trabajo, tarea, session):
   return session.query(Extraciclos).filter(

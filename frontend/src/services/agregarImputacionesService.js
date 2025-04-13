@@ -47,3 +47,9 @@ export async function cancelImputacionesProcess(processId) {
   );
   return response.data;
 }
+
+export async function downloadImputacionesFile(processId) {
+  const url = `${BASE_URL}/agregar-imputaciones/download/${processId}`;
+  // Abre en nueva ventana o fuerza descarga
+  window.open(url, "_blank");
+}
