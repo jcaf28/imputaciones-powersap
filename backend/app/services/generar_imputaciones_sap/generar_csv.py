@@ -1,3 +1,5 @@
+# PATH: backend/app/services/generar_imputaciones_sap/generar_csv.py
+
 import os
 import subprocess
 from datetime import datetime
