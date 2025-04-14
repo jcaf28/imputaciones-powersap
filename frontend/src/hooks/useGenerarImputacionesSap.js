@@ -14,9 +14,7 @@ export default function useGenerarImputacionesSap() {
     { field: "fechaImp", headerName: "Fecha", width: 130 },
     { field: "codEmpleado", headerName: "Empleado", width: 130 },
     { field: "horas", headerName: "Horas", width: 100 },
-    { field: "proyecto", headerName: "Proyecto", width: 130 },
-    { field: "tipoCoche", headerName: "Tipo Coche", width: 130 },
-    { field: "cargadoSap", headerName: "¿Cargado SAP?", width: 150 }
+    { field: "proyecto", headerName: "Proyecto", width: 130 }
   ]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
