@@ -1,4 +1,4 @@
-# PATH: backend/app/services/generar_imputaciones_sap/_assign_sap_orders.py
+# PATH: backend/app/services/generar_imputaciones_sap/utils/_assign_sap_orders.py
 
 from typing import List, Tuple, Optional
 from sqlalchemy.orm import Session
@@ -117,7 +117,6 @@ def obtener_sap_order_gg(
                 return so
 
     return None
-
 
 def fallback_fuera_sistema(db: Session, logs: List[str]) -> int:
     """
