@@ -98,7 +98,7 @@ def obtener_sap_order_gg(
             Areas.CentroTrabajo == imp.CentroTrabajo
         ).first()
 
-        opgg = area_relacionada.OpGG.strip().lstrip("0") if area_relacionada and area_relacionada.OpGG else None
+        opgg = area_relacionada.OpGG if area_relacionada and area_relacionada.OpGG else None
 
         if opgg:
             so = (
