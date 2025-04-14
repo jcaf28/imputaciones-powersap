@@ -18,5 +18,14 @@
     "titleBar.inactiveBackground": "#74277499",
     "titleBar.inactiveForeground": "#e7e7e799"
   },
-  "peacock.color": "#742774"
+  "peacock.color": "#742774",
+  "github.copilot.enable": {
+    "*": true,
+    "plaintext": false,
+    "markdown": false,
+    "scminput": false,
+    "python": true,
+    "javascript": true,
+    "yaml": false
+  }
 }

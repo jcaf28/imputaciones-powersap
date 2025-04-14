@@ -8,48 +8,19 @@ import time
 import asyncio
 from sqlalchemy.orm import Session
 
-from app.db.session import database_session
 from app.db.session import get_db
-from app.models.models import Imputaciones
+
+from fastapi import APIRouter, HTTPException
+from fastapi.responses import FileResponse
+import os
 
 from app.services.generar_imputaciones_sap.pending_imputaciones import get_imputaciones_pendientes, get_imputaciones_pendientes_count
 
 
 router = APIRouter()
 
-# ================== FAKE DATABASE ===================
-FAKE_DATA = [
-    {
-        "id": 1,
-        "fechaImp": "2025-04-01",
-        "codEmpleado": "E123",
-        "horas": 5.5,
-        "proyecto": "P001",
-        "tipoCoche": "A",
-        "cargadoSap": False
-    },
-    {
-        "id": 2,
-        "fechaImp": "2025-04-02",
-        "codEmpleado": "E124",
-        "horas": 3.75,
-        "proyecto": "P002",
-        "tipoCoche": "C",
-        "cargadoSap": False
-    },
-    {
-        "id": 3,
-        "fechaImp": "2025-04-05",
-        "codEmpleado": "E555",
-        "horas": 2.0,
-        "proyecto": "P003",
-        "tipoCoche": "B",
-        "cargadoSap": False
-    }
-]
-
 SESSIONS: Dict[str, Dict[str, Any]] = {}
-
+COMPLETED_FILES = {}  # process_id => "/tmp/... .xlsx" o "C:/temporal/..."
 # ================== ENDPOINTS ===================
 
 
@@ -63,15 +34,37 @@ def count_pending_imputaciones(db: Session = Depends(get_db)):
 def list_pending_imputaciones(db: Session = Depends(get_db)):
     return get_imputaciones_pendientes(db)
 
+@router.get("/download/{process_id}")
+def download_sap_result(process_id: str):
+    """
+    Devuelve el archivo final (Excel/CSV) tras completarse el proceso SSE.
+    """
+    if process_id not in COMPLETED_FILES:
+        raise HTTPException(404, detail="No se encontró un archivo para ese process_id.")
+
+    file_path = COMPLETED_FILES[process_id]
+    if not os.path.exists(file_path):
+        raise HTTPException(404, detail="El archivo no existe o fue eliminado.")
+
+    # En caso de que quieras forzar la descarga como Excel, ajusta el "media_type"
+    # y "filename" según tu preferencia (CSV vs XLSX).
+    return FileResponse(
+        path=file_path,
+        filename=os.path.basename(file_path),
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    )
+
 @router.post("/start")
-def start_process(background_tasks: BackgroundTasks):
+def start_process_sap(
+    background_tasks: BackgroundTasks,
+    db: Session = Depends(get_db)
+):
     process_id = str(uuid.uuid4())
     SESSIONS[process_id] = {
         "status": "in-progress",
-        "logs": ["🟢 Proceso iniciado..."],
-        "csv_data": b""
+        "logs": [],
     }
-    background_tasks.add_task(long_running_task, process_id)
+    background_tasks.add_task(_bg_assign_sap, process_id, db)
     return {"process_id": process_id}
 
 
@@ -86,18 +79,18 @@ def cancel_process(process_id: str):
     return {"message": f"Proceso cancelado (estado actual: {session['status']})"}
 
 
-@router.get("/download/{process_id}")
-def download_csv(process_id: str):
-    session = SESSIONS.get(process_id)
-    if not session or session["status"] != "completed":
-        raise HTTPException(400, detail="CSV no disponible todavía.")
-    return Response(
-        content=session["csv_data"],
-        media_type="text/csv",
-        headers={
-            "Content-Disposition": f'attachment; filename="imputaciones_{process_id}.csv"'
-        }
-    )
+# @router.get("/download/{process_id}")
+# def download_csv(process_id: str):
+#     session = SESSIONS.get(process_id)
+#     if not session or session["status"] != "completed":
+#         raise HTTPException(400, detail="CSV no disponible todavía.")
+#     return Response(
+#         content=session["csv_data"],
+#         media_type="text/csv",
+#         headers={
+#             "Content-Disposition": f'attachment; filename="imputaciones_{process_id}.csv"'
+#         }
+#     )
 
 
 @router.get("/events/{process_id}")
@@ -130,29 +123,21 @@ async def sse_events(request: Request, process_id: str):
 
 # ================== BACKGROUND TASK ===================
 
-def long_running_task(process_id: str):
+def _bg_assign_sap(process_id: str, db: Session):
+    logs = SESSIONS[process_id]["logs"]
     try:
-        add_log(process_id, "📥 Cargando imputaciones...")
-        time.sleep(1)
+        from app.services.generar_imputaciones_sap.assign_sap_orders import run_assign_sap_orders_inmemory
+        logs.append("Iniciando la asignación de SAP Orders en TablaCentral...")
 
-        add_log(process_id, f"📝 Encontradas {len(FAKE_DATA)} imputaciones.")
-        time.sleep(1)
+        # Llamada principal
+        run_assign_sap_orders_inmemory(db, logs)
 
-        add_log(process_id, "📊 Generando CSV...")
-        csv_header = "ID,FechaImp,Empleado,Horas,Proyecto,TipoCoche,CargadoSap\n"
-        csv_rows = [
-            f"{row['id']},{row['fechaImp']},{row['codEmpleado']},{row['horas']},{row['proyecto']},{row['tipoCoche']},{row['cargadoSap']}\n"
-            for row in FAKE_DATA
-        ]
-        csv_content = csv_header + "".join(csv_rows)
-        SESSIONS[process_id]["csv_data"] = csv_content.encode("utf-8")
-
-        time.sleep(1)
-        add_log(process_id, "✅ CSV generado correctamente.")
-        mark_completed(process_id)
+        logs.append("✅ Proceso completado. Ya puedes generar el CSV con /generate-excel (si lo deseas).")
+        SESSIONS[process_id]["status"] = "completed"
 
     except Exception as e:
-        mark_error(process_id, f"❌ Error: {str(e)}")
+        SESSIONS[process_id]["status"] = "error"
+        logs.append(f"❌ Error en _bg_assign_sap: {str(e)}")
 
 
 # ================== HELPERS ===================

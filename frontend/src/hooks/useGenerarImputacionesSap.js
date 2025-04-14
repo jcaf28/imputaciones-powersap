@@ -1,3 +1,5 @@
+// PATH: frontend/src/hooks/useGenerarImputacionesSap.js
+
 import { useState, useEffect } from "react";
 import {
   fetchPendingImputaciones,
@@ -11,10 +13,22 @@ export default function useGenerarImputacionesSap() {
   const [rows, setRows] = useState([]);
   const [columns, setColumns] = useState([
     { field: "id", headerName: "ID", width: 90 },
-    { field: "fechaImp", headerName: "Fecha", width: 130 },
-    { field: "codEmpleado", headerName: "Empleado", width: 130 },
+    { field: "fechaImp", headerName: "Fecha", width: 120 },
+    { field: "codEmpleado", headerName: "Empleado", width: 120 },
+    { field: "timpu", headerName: "Timpu", width: 100 },
     { field: "horas", headerName: "Horas", width: 100 },
-    { field: "proyecto", headerName: "Proyecto", width: 130 }
+    { field: "proyecto", headerName: "Proyecto", width: 130 },
+    { field: "tipoCoche", headerName: "Tipo Coche", width: 120 },
+    { field: "numCoche", headerName: "Nº Coche", width: 110 },
+    { field: "centroTrabajo", headerName: "Centro Trabajo", width: 140 },
+    { field: "tarea", headerName: "Tarea", width: 110 },
+    { field: "tareaAsoc", headerName: "Tarea Asoc.", width: 130 },
+    { field: "tipoIndirecto", headerName: "Tipo Indirecto", width: 140 },
+    { field: "tipoMotivo", headerName: "Tipo Motivo", width: 120 },
+    { field: "timestampInput", headerName: "Fecha Input", width: 160 },
+    { field: "tipoImput", headerName: "Tipo Imput", width: 110 },
+    { field: "areaTarea", headerName: "Area Tarea", width: 130 },
+    { field: "area_id", headerName: "Area ID", width: 100 },
   ]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);

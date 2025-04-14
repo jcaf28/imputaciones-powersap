@@ -29,10 +29,20 @@ def get_imputaciones_pendientes(db: Session):
             "id": imp.ID,
             "fechaImp": imp.FechaImp,
             "codEmpleado": imp.CodEmpleado,
+            "timpu": imp.Timpu,
             "horas": imp.Horas,
             "proyecto": imp.Proyecto,
             "tipoCoche": imp.TipoCoche,
-            "cargadoSap": imp.tabla_central.Cargado_SAP if imp.tabla_central else None
+            "numCoche": imp.NumCoche,
+            "centroTrabajo": imp.CentroTrabajo,
+            "tarea": imp.Tarea,
+            "tareaAsoc": imp.TareaAsoc,
+            "tipoIndirecto": imp.TipoIndirecto,
+            "tipoMotivo": imp.TipoMotivo,
+            "timestampInput": imp.TimestampInput,
+            "tipoImput": imp.TipoImput,
+            "areaTarea": imp.AreaTarea,
+            "area_id": imp.area_id,
         })
 
     return imputaciones_list

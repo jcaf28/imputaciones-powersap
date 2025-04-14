@@ -1,3 +1,5 @@
+// PATH: frontend/src/pages/GererarImputacionesSap.jsx
+
 import React from "react";
 import { Box, Typography, Button, CircularProgress } from "@mui/material";
 import { DataGrid } from "@mui/x-data-grid";
