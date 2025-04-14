@@ -12,6 +12,11 @@ export async function fetchPendingImputaciones() {
   return resp.data; // array de objetos
 }
 
+export async function fetchPendingImputacionesCount() {
+  const resp = await axios.get(`${BASE_URL}/generar-imputaciones-sap/list-summary`);
+  return resp.data.count;
+}
+
 /**
  * 2) POST: Iniciar proceso SSE (devuelve process_id)
  */

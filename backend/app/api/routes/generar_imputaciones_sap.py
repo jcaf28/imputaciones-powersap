@@ -12,7 +12,7 @@ from app.db.session import database_session
 from app.db.session import get_db
 from app.models.models import Imputaciones
 
-from app.services.generar_imputaciones_sap.pending_imputaciones import get_imputaciones_pendientes
+from app.services.generar_imputaciones_sap.pending_imputaciones import get_imputaciones_pendientes, get_imputaciones_pendientes_count
 
 
 router = APIRouter()
@@ -51,6 +51,13 @@ FAKE_DATA = [
 SESSIONS: Dict[str, Dict[str, Any]] = {}
 
 # ================== ENDPOINTS ===================
+
+
+@router.get("/list-summary")
+def count_pending_imputaciones(db: Session = Depends(get_db)):
+    count = get_imputaciones_pendientes_count(db)
+    return {"count": count}
+
 
 @router.get("/list", response_model=List[Dict[str, Any]])
 def list_pending_imputaciones(db: Session = Depends(get_db)):

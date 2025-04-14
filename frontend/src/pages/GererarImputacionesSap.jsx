@@ -1,11 +1,9 @@
-// PATH: frontend/src/pages/GererarImputacionesSap.jsx
-
 import React from "react";
 import { Box, Typography, Button, CircularProgress } from "@mui/material";
 import { DataGrid, GridToolbarQuickFilter } from "@mui/x-data-grid";
 
 import useGenerarImputacionesSap from "../hooks/useGenerarImputacionesSap";
-import ProcessLogger from "../components/ProcessLogger"; // Reutiliza tu componente
+import ProcessLogger from "../components/ProcessLogger";
 
 export const meta = {
   label: "Generar Imputaciones SAP",
@@ -23,8 +21,10 @@ export default function GenerarImputacionesSap() {
     processId,
     handleStartProcess,
     handleCancel,
-    refreshData,
-    downloadCSV
+    downloadCSV,
+    rowCount,
+    showingRows,
+    toggleShowRows
   } = useGenerarImputacionesSap();
 
   return (
@@ -33,31 +33,35 @@ export default function GenerarImputacionesSap() {
         Generar Imputaciones SAP
       </Typography>
 
-      <Box sx={{ mb: 2, display: "flex", gap: 2 }}>
-        {/* Botón que inicia la generación con SSE */}
-        <Button
-          variant="contained"
-          onClick={handleStartProcess}
-          disabled={loading || status === "in-progress"}
-        >
-          Generar Imputaciones SAP
-        </Button>
-
-        {/* Botón para refrescar la tabla de pendientes */}
-        <Button
-          variant="outlined"
-          onClick={refreshData}
-          disabled={loading || status === "in-progress"}
-        >
-          Refrescar datos
-        </Button>
-
-        {/* Botón para cancelar SSE */}
-        {status === "in-progress" && (
-          <Button variant="outlined" color="error" onClick={handleCancel}>
-            Cancelar
+      <Box sx={{ mb: 2 }}>
+        <Typography variant="body1" sx={{ mb: 1 }}>
+          {rowCount !== null
+            ? `Registros pendientes encontrados: ${rowCount}`
+            : "Contando registros..."}
+        </Typography>
+        <Box sx={{ display: "flex", gap: 2 }}>
+          <Button
+            variant="contained"
+            onClick={handleStartProcess}
+            disabled={loading || status === "in-progress"}
+          >
+            Generar Imputaciones SAP
           </Button>
-        )}
+
+          <Button
+            variant="outlined"
+            onClick={toggleShowRows}
+            disabled={loading || status === "in-progress"}
+          >
+            {showingRows ? "Refrescar" : "Ver registros"}
+          </Button>
+
+          {status === "in-progress" && (
+            <Button variant="outlined" color="error" onClick={handleCancel}>
+              Cancelar
+            </Button>
+          )}
+        </Box>
       </Box>
 
       {loading && status !== "in-progress" && (
@@ -75,7 +79,6 @@ export default function GenerarImputacionesSap() {
         </Typography>
       )}
 
-      {/* Logs SSE si está in-progress o completado */}
       {(status === "in-progress" || status === "completed") && (
         <Box sx={{ mb: 2 }}>
           <Typography variant="h6">Progreso:</Typography>
@@ -83,31 +86,31 @@ export default function GenerarImputacionesSap() {
         </Box>
       )}
 
-      {/* Si completado, permitir descarga CSV */}
       {status === "completed" && (
         <Button variant="contained" onClick={downloadCSV}>
           Descargar CSV Generado
         </Button>
       )}
 
-      <Box sx={{ height: 500, mt: 2 }}>
-        <DataGrid
-          rows={rows}
-          columns={columns}
-          pageSize={10}
-          rowsPerPageOptions={[10, 25, 50]}
-          loading={loading && status !== "in-progress"}
-          disableSelectionOnClick
-          components={{
-            Toolbar: QuickSearchToolbar
-          }}
-        />
-      </Box>
+      {showingRows && (
+        <Box sx={{ height: 500, mt: 2 }}>
+          <DataGrid
+            rows={rows}
+            columns={columns}
+            pageSize={10}
+            rowsPerPageOptions={[10, 25, 50]}
+            loading={loading && status !== "in-progress"}
+            disableSelectionOnClick
+            components={{
+              Toolbar: QuickSearchToolbar
+            }}
+          />
+        </Box>
+      )}
     </Box>
   );
 }
 
-// Barra de búsqueda rápida (filtra en todas las columnas)
 function QuickSearchToolbar() {
   return (
     <Box

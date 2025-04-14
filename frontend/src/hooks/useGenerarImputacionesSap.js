@@ -1,152 +1,115 @@
-// PATH: frontend/src/hooks/useGenerarImputacionesSap.js
-
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import {
   fetchPendingImputaciones,
+  fetchPendingImputacionesCount,
   startGenerarImputacionesSap,
   cancelGenerarImputacionesSap,
   downloadGeneratedCSV
 } from "../services/generarImputacionesSapService";
-import useSSE from "./useSSE";
 
 export default function useGenerarImputacionesSap() {
-  // ===================== ESTADOS =====================
   const [rows, setRows] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
-  const [processId, setProcessId] = useState(null);
-  const [status, setStatus] = useState("idle"); // 'in-progress', 'completed', 'cancelled', 'error'
-  const [logs, setLogs] = useState([]);
-
-  // ===================== COLUMNAS =====================
-  const columns = [
+  const [columns, setColumns] = useState([
     { field: "id", headerName: "ID", width: 90 },
-    {
-      field: "fechaImp",
-      headerName: "Fecha Imp.",
-      width: 140,
-      valueFormatter: (params) => {
-        if (!params.value) return "";
-        const date = new Date(params.value);
-        return date.toLocaleDateString();
-      }
-    },
+    { field: "fechaImp", headerName: "Fecha", width: 130 },
     { field: "codEmpleado", headerName: "Empleado", width: 130 },
-    { field: "horas", headerName: "Horas", width: 90, type: "number" },
-    { field: "proyecto", headerName: "Proyecto", width: 150 },
-    { field: "tipoCoche", headerName: "Tipo Coche", width: 120 },
-    { field: "cargadoSap", headerName: "Cargado SAP?", width: 120, type: "boolean" }
-  ];
+    { field: "horas", headerName: "Horas", width: 100 },
+    { field: "proyecto", headerName: "Proyecto", width: 130 },
+    { field: "tipoCoche", headerName: "Tipo Coche", width: 130 },
+    { field: "cargadoSap", headerName: "¿Cargado SAP?", width: 150 }
+  ]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [status, setStatus] = useState("idle"); // idle | in-progress | completed | error
+  const [logs, setLogs] = useState([]);
+  const [processId, setProcessId] = useState(null);
+  const [rowCount, setRowCount] = useState(null);
+  const [showingRows, setShowingRows] = useState(false);
 
-  // ===================== SSE URL & HOOK =====================
-  const sseUrl = processId
-    ? `${import.meta.env.VITE_API_BASE_URL}/generar-imputaciones-sap/events/${processId}`
-    : null;
-  const { events } = useSSE(sseUrl);
-
-  // Interpretar SSE
+  // Al montar, solo pedimos el conteo de imputaciones pendientes
   useEffect(() => {
-    if (events.length === 0) return;
-    const lastEvent = events[events.length - 1];
-    const { type, data } = lastEvent;
+    fetchPendingImputacionesCount()
+      .then(setRowCount)
+      .catch(() => setRowCount(null));
+  }, []);
 
-    switch (type) {
-      case "message":
-        setStatus("in-progress");
-        setLogs((prev) => [...prev, data]);
-        break;
-      case "completed":
-        setStatus("completed");
-        setLogs((prev) => [...prev, `✅ ${data}`]);
-        break;
-      case "cancelled":
-        setStatus("cancelled");
-        setLogs((prev) => [...prev, `🛑 ${data}`]);
-        break;
-      case "error":
-        setStatus("error");
-        setLogs((prev) => [...prev, `❌ ${data}`]);
-        setError(data);
-        break;
-      default:
-        break;
-    }
-  }, [events]);
-
-  // ===================== CARGAR DATOS TABLA =====================
-  const loadData = useCallback(async () => {
+  // Mostrar registros por primera vez o refrescar si ya están visibles
+  const toggleShowRows = async () => {
     setLoading(true);
-    setError("");
+    setError(null);
+    try {
+      const data = await fetchPendingImputaciones();
+      setRows(data);
+      setShowingRows(true); // aseguramos que quede activo
+    } catch (err) {
+      setError("Error al cargar registros");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const refreshData = async () => {
     try {
       const data = await fetchPendingImputaciones();
       setRows(data);
     } catch (err) {
-      setError(err.message || "Error al cargar datos");
-    } finally {
-      setLoading(false);
+      setError("Error al refrescar registros");
     }
-  }, []);
+  };
 
-  // Carga inicial
-  useEffect(() => {
-    loadData();
-  }, [loadData]);
-
-  // ===================== ACCIONES =====================
-  async function handleStartProcess() {
+  const handleStartProcess = async () => {
+    setLoading(true);
+    setError(null);
     try {
-      setLoading(true);
-      setLogs(["Iniciando proceso de generación SAP..."]);
-      setError("");
       const { process_id } = await startGenerarImputacionesSap();
       setProcessId(process_id);
       setStatus("in-progress");
+      setLogs([]);
+
+      const evtSource = new EventSource(
+        `${import.meta.env.VITE_API_BASE_URL}/generar-imputaciones-sap/events/${process_id}`
+      );
+
+      evtSource.onmessage = (event) => {
+        setLogs((prevLogs) => [...prevLogs, event.data]);
+      };
+
+      evtSource.addEventListener("completed", (event) => {
+        setLogs((prevLogs) => [...prevLogs, event.data]);
+        setStatus("completed");
+        evtSource.close();
+      });
+
+      evtSource.addEventListener("cancelled", (event) => {
+        setLogs((prevLogs) => [...prevLogs, event.data]);
+        setStatus("cancelled");
+        evtSource.close();
+      });
+
+      evtSource.onerror = () => {
+        setLogs((prevLogs) => [...prevLogs, "❌ Error de conexión SSE"]);
+        setStatus("error");
+        evtSource.close();
+      };
     } catch (err) {
-      setError(err.message || "Error al iniciar proceso");
+      setError("Error al iniciar el proceso");
     } finally {
       setLoading(false);
     }
-  }
+  };
 
-  async function handleCancel() {
+  const handleCancel = async () => {
     if (!processId) return;
-    try {
-      await cancelGenerarImputacionesSap(processId);
-      setStatus("idle");
-      setError("");
-      setLogs((prev) => [...prev, "Proceso cancelado por el usuario."]);
-      setProcessId(null);
-    } catch (err) {
-      setError(err.message || "Error al cancelar");
+    await cancelGenerarImputacionesSap(processId);
+  };
+
+  const downloadCSV = () => {
+    if (processId) {
+      downloadGeneratedCSV(processId);
     }
-  }
+  };
 
-  async function downloadCSV() {
-    if (!processId) return;
-    await downloadGeneratedCSV(processId);
-  }
-
-  function refreshData() {
-    loadData();
-  }
-
-  /**
-   * resetHook: restablece todos los estados al valor inicial.
-   * Útil si te sales y entras de la página, pero tu routing
-   * no desmonta el componente y quieres forzar "limpieza".
-   */
-  function resetHook() {
-    setRows([]);
-    setLoading(false);
-    setError("");
-    setProcessId(null);
-    setStatus("idle");
-    setLogs([]);
-  }
-
-  // ===================== RETORNO =====================
   return {
-    // estados
     rows,
     columns,
     loading,
@@ -154,12 +117,12 @@ export default function useGenerarImputacionesSap() {
     status,
     logs,
     processId,
-    // acciones
     handleStartProcess,
     handleCancel,
-    downloadCSV,
     refreshData,
-    // extra
-    resetHook
+    downloadCSV,
+    rowCount,
+    showingRows,
+    toggleShowRows
   };
 }

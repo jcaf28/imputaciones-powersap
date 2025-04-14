@@ -4,6 +4,14 @@ from sqlalchemy.orm import Session
 from sqlalchemy.sql import or_
 from app.models.models import Imputaciones, TablaCentral
 
+def get_imputaciones_pendientes_count(db: Session) -> int:
+    return db.query(Imputaciones).outerjoin(TablaCentral).filter(
+        or_(
+            TablaCentral.ID == None,
+            TablaCentral.Cargado_SAP == False
+        )
+    ).count()
+
 def get_imputaciones_pendientes(db: Session):
     """
     Devuelve las imputaciones que no tienen entrada en Tabla_Central o las que tienen Cargado_SAP = False.
