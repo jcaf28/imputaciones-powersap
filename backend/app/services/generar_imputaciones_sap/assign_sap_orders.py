@@ -10,7 +10,7 @@ from app.db.session import database_session
 from app.services.generar_imputaciones_sap.pending_imputaciones import get_imputaciones_pendientes
 from app.models.models import Imputaciones
 
-from ._assign_sap_orders import (
+from .utils._assign_sap_orders import (
     obtener_operation_via_db,
     obtener_proyecto_sap,
     obtener_sap_order_id_y_production_order_via_db,
