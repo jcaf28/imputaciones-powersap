@@ -14,7 +14,8 @@ from ._assign_sap_orders import (
     obtener_operation_via_db,
     obtener_proyecto_sap,
     obtener_sap_order_id_y_production_order_via_db,
-    fallback_fuera_sistema
+    fallback_fuera_sistema,
+    obtener_sap_order_gg
 )
 
 
@@ -58,39 +59,46 @@ def run_assign_sap_orders_inmemory(db: Session, logs: List[str]):
 
         logs.append(f"🔧 Procesando imputación ID={imp_id}...")
 
-        # 1) Obtener operation, operationActivity
-        operation, operation_activity = obtener_operation_via_db(imp_obj, db, extraciclos_all, logs)
-        if operation is None or operation_activity is None:
-            logs.append(f"❓ No se encontró operación para ID={imp_id}. => fallback.")
-            sap_order_id = fallback_fuera_sistema(db, logs)
-            production_order = None
+        # 1) Intento por TipoIndirecto + TipoMotivo + opGG
+        so_tipo_indirecto = obtener_sap_order_gg(imp_obj, db, logs)
+        if so_tipo_indirecto:
+            sap_order_id = so_tipo_indirecto.ID
+            production_order = so_tipo_indirecto.Order
+            operation = so_tipo_indirecto.Operation
+            operation_activity = so_tipo_indirecto.OperationActivity
+
         else:
-            # 2) proyecto_sap
-            proyecto_sap = obtener_proyecto_sap(imp_obj.Proyecto, db)
-            if not proyecto_sap:
-                logs.append(f"❓ ProyectoSap no encontrado => fallback. ID={imp_id}.")
+            # 2) Obtener operation, operationActivity con lógica clásica
+            operation, operation_activity = obtener_operation_via_db(imp_obj, db, extraciclos_all, logs)
+            if operation is None or operation_activity is None:
+                logs.append(f"❓ No se encontró operación para ID={imp_id}. => fallback.")
                 sap_order_id = fallback_fuera_sistema(db, logs)
                 production_order = None
             else:
-                # 3) Buscar SapOrder con query real
-                so_id, so_order = obtener_sap_order_id_y_production_order_via_db(
-                    db, proyecto_sap, imp_obj, operation_activity, logs
-                )
-                if so_id is None:
-                    logs.append(f"❌ No se encontró coincidencia exacta => fallback.")
+                proyecto_sap = obtener_proyecto_sap(imp_obj.Proyecto, db)
+                if not proyecto_sap:
+                    logs.append(f"❓ ProyectoSap no encontrado => fallback. ID={imp_id}.")
                     sap_order_id = fallback_fuera_sistema(db, logs)
                     production_order = None
                 else:
-                    sap_order_id = so_id
-                    production_order = so_order
+                    so_id, so_order = obtener_sap_order_id_y_production_order_via_db(
+                        db, proyecto_sap, imp_obj, operation_activity, logs
+                    )
+                    if so_id is None:
+                        logs.append(f"❌ No se encontró coincidencia exacta => fallback.")
+                        sap_order_id = fallback_fuera_sistema(db, logs)
+                        production_order = None
+                    else:
+                        sap_order_id = so_id
+                        production_order = so_order
 
-        # 4) Insertar en Tabla_Central con Cargado_SAP=False
+        # 4) Insertar en Tabla_Central
         new_row = TablaCentral(
             imputacion_id=imp_id,
             sap_order_id=sap_order_id,
             Employee_Number=imp_obj.CodEmpleado,
             Date=imp_obj.FechaImp,
-            HourType="Production Direct Hour",  # O lógica real si quieres
+            HourType="Production Direct Hour",
             ProductionOrder=production_order,
             Operation=operation,
             OperationActivity=operation_activity,
@@ -99,7 +107,4 @@ def run_assign_sap_orders_inmemory(db: Session, logs: List[str]):
         )
         db.add(new_row)
         db.commit()
-
         logs.append(f"✅ Imputación {imp_id} insertada en TablaCentral con SapOrder {sap_order_id}.")
-
-    logs.append("🏁 Proceso completado. Todas las imputaciones asignadas o enviadas a fallback.")
