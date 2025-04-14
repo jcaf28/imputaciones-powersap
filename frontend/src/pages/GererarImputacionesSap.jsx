@@ -1,6 +1,6 @@
 import React from "react";
 import { Box, Typography, Button, CircularProgress } from "@mui/material";
-import { DataGrid, GridToolbarQuickFilter } from "@mui/x-data-grid";
+import { DataGrid } from "@mui/x-data-grid";
 
 import useGenerarImputacionesSap from "../hooks/useGenerarImputacionesSap";
 import ProcessLogger from "../components/ProcessLogger";
@@ -101,9 +101,6 @@ export default function GenerarImputacionesSap() {
             rowsPerPageOptions={[10, 25, 50]}
             loading={loading && status !== "in-progress"}
             disableSelectionOnClick
-            components={{
-              Toolbar: QuickSearchToolbar
-            }}
           />
         </Box>
       )}
@@ -111,17 +108,4 @@ export default function GenerarImputacionesSap() {
   );
 }
 
-function QuickSearchToolbar() {
-  return (
-    <Box
-      sx={{
-        p: 1,
-        pb: 0,
-        display: "flex",
-        justifyContent: "flex-end"
-      }}
-    >
-      <GridToolbarQuickFilter />
-    </Box>
-  );
-}
+
