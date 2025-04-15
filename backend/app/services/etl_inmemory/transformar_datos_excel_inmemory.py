@@ -17,6 +17,10 @@ def transformar_datos_excel_inmemory(df):
     if 'Fecha' in df.columns and 'FechaImp' not in df.columns:
         df = df.rename(columns={'Fecha': 'FechaImp'})
 
+    # Aquí forzamos dd/mm/yyyy => date
+    if 'FechaImp' in df.columns:
+        df['FechaImp'] = pd.to_datetime(df['FechaImp'], dayfirst=True, errors='coerce').dt.date
+
     if 'Comentario' in df.columns:
         # Convertir a str para usar .contains()
         df['Comentario'] = df['Comentario'].astype(str)
