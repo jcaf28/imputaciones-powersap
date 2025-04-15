@@ -90,7 +90,7 @@ export default function GenerarImputacionesSap() {
 
       {status === "completed" && (
         <Button variant="contained" onClick={downloadCSV}>
-          Descargar CSV Generado
+          Descargar ZIP (CSV + XLSX)
         </Button>
       )}
 

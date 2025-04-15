@@ -35,26 +35,22 @@ def list_pending_imputaciones(db: Session = Depends(get_db)):
     return get_imputaciones_pendientes(db)
 
 @router.get("/download")
-def download_sap_csv(db: Session = Depends(get_db)):
+def download_sap_csv_zip(db: Session = Depends(get_db)):
     """
-    Genera el archivo CSV con las filas donde Cargado_SAP=False
-    y lo devuelve directamente. (Solo CSV, sin Excel).
+    Genera un .zip con CSV + XLSX y lo devuelve.
     """
-    from app.services.generar_imputaciones_sap.generar_csv import generate_csv_file
+    from app.services.generar_imputaciones_sap.generar_csv import generate_zip_with_csv_and_xlsx
+    zip_path = generate_zip_with_csv_and_xlsx(db)
 
-    csv_path = generate_csv_file(db)
+    if not zip_path or not os.path.exists(zip_path):
+        raise HTTPException(404, detail="No se pudo generar el ZIP (quizá sin registros).")
 
-    if not csv_path or not os.path.exists(csv_path):
-        raise HTTPException(404, detail="No se pudo generar el CSV o está vacío.")
-
-    filename = os.path.basename(csv_path)
-
-    # Retornamos el archivo CSV con media_type='text/csv'
     return FileResponse(
-        path=csv_path,
-        filename=filename,
-        media_type="text/csv"
+        path=zip_path,
+        filename=os.path.basename(zip_path),
+        media_type="application/octet-stream"
     )
+
 
 @router.post("/start")
 def start_process_sap(
