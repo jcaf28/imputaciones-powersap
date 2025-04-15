@@ -34,24 +34,26 @@ def count_pending_imputaciones(db: Session = Depends(get_db)):
 def list_pending_imputaciones(db: Session = Depends(get_db)):
     return get_imputaciones_pendientes(db)
 
-@router.get("/download/{process_id}")
-def download_sap_result(process_id: str):
+@router.get("/download")
+def download_sap_csv(db: Session = Depends(get_db)):
     """
-    Devuelve el archivo final (Excel/CSV) tras completarse el proceso SSE.
+    Genera el archivo CSV con las filas donde Cargado_SAP=False
+    y lo devuelve directamente. (Solo CSV, sin Excel).
     """
-    if process_id not in COMPLETED_FILES:
-        raise HTTPException(404, detail="No se encontró un archivo para ese process_id.")
+    from app.services.generar_imputaciones_sap.generar_csv import generate_csv_file
 
-    file_path = COMPLETED_FILES[process_id]
-    if not os.path.exists(file_path):
-        raise HTTPException(404, detail="El archivo no existe o fue eliminado.")
+    csv_path = generate_csv_file(db)
 
-    # En caso de que quieras forzar la descarga como Excel, ajusta el "media_type"
-    # y "filename" según tu preferencia (CSV vs XLSX).
+    if not csv_path or not os.path.exists(csv_path):
+        raise HTTPException(404, detail="No se pudo generar el CSV o está vacío.")
+
+    filename = os.path.basename(csv_path)
+
+    # Retornamos el archivo CSV con media_type='text/csv'
     return FileResponse(
-        path=file_path,
-        filename=os.path.basename(file_path),
-        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        path=csv_path,
+        filename=filename,
+        media_type="text/csv"
     )
 
 @router.post("/start")
@@ -77,20 +79,6 @@ def cancel_process(process_id: str):
         session["status"] = "cancelled"
         session["logs"].append("🛑 Proceso cancelado por el usuario.")
     return {"message": f"Proceso cancelado (estado actual: {session['status']})"}
-
-
-# @router.get("/download/{process_id}")
-# def download_csv(process_id: str):
-#     session = SESSIONS.get(process_id)
-#     if not session or session["status"] != "completed":
-#         raise HTTPException(400, detail="CSV no disponible todavía.")
-#     return Response(
-#         content=session["csv_data"],
-#         media_type="text/csv",
-#         headers={
-#             "Content-Disposition": f'attachment; filename="imputaciones_{process_id}.csv"'
-#         }
-#     )
 
 
 @router.get("/events/{process_id}")

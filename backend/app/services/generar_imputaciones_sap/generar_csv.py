@@ -1,117 +1,108 @@
 # PATH: backend/app/services/generar_imputaciones_sap/generar_csv.py
 
-import os
-import subprocess
-from datetime import datetime
-import pandas as pd
-import csv
+# PATH: backend/app/services/generar_imputaciones_sap/generar_csv.py
 
-from app.db.session import database_session
+import os
+import csv
+import pandas as pd
+from datetime import datetime
+from sqlalchemy.orm import Session
 from app.models.models import TablaCentral
 
-def fetch_data() -> pd.DataFrame:
+def fetch_data(db: Session) -> pd.DataFrame:
     """
-    Consulta TablaCentral para obtener registros con Cargado_SAP=False.
-    Devuelve un DataFrame con las columnas requeridas.
+    Retorna un DataFrame con las filas de TablaCentral donde Cargado_SAP == False.
     """
-    print("Iniciando la consulta de datos en TablaCentral (Cargado_SAP=False)...")
-    with database_session as db:
-        query = db.query(
-            TablaCentral.Employee_Number,
-            TablaCentral.Date,
-            TablaCentral.HourType,
-            TablaCentral.ProductionOrder,
-            TablaCentral.Operation,
-            TablaCentral.OperationActivity,
-            TablaCentral.Hours
-        ).filter(TablaCentral.Cargado_SAP == False)
+    query = db.query(
+        TablaCentral.Employee_Number,
+        TablaCentral.Date,
+        TablaCentral.HourType,
+        TablaCentral.ProductionOrder,
+        TablaCentral.Operation,
+        TablaCentral.OperationActivity,
+        TablaCentral.Hours
+    ).filter(TablaCentral.Cargado_SAP == False)
 
-        data = pd.read_sql(query.statement, db.bind)
+    df = pd.read_sql(query.statement, db.bind)
+    return df
 
-    print(f"Datos obtenidos: {len(data)} registros")
-    return data
-
-def format_date(date_val):
+def format_date(date):
     """
-    Devuelve la fecha en formato dd/mm/yyyy si no es nulo,
-    o cadena vacía en caso contrario.
+    Devuelve la fecha en formato dd/mm/YYYY o vacío si es nulo.
     """
-    if pd.notnull(date_val):
-        return date_val.strftime('%d/%m/%Y')
-    return ''
+    return date.strftime("%d/%m/%Y") if pd.notnull(date) else ""
 
-def generate_excel():
+def map_hourtype(op_act, original_hourtype):
     """
-    Genera dos archivos en la ruta S:\\O-BEA-14-DIVISION_3\\Eider\\Mass Upload:
-      1) Un Excel mass_upload_YYYYmmdd_HHMMSS.xlsx
-      2) Un CSV mass_upload_YYYYmmdd_HHMMSS.csv (separador ';')
-    con la misma información, formateada para SAP/Excel.
-
-    Si no deseas guardarlos en disco, podrías:
-      - Generar ambos en memoria (BytesIO) y servirlos directamente.
-      - Borrarlos tras su uso.
+    Lógica de mapeo:
+     - Si OperationActivity acaba en 'XX' => 3
+     - Si acaba en 'GG' => 4
+     - Si acaba en 'C...' => 5
+     - En otro caso => original_hourtype
     """
-    print("Generando el archivo Excel/CSV para imputaciones pendientes...")
+    if isinstance(op_act, str):
+        if op_act.endswith("XX"):
+            return 3
+        if op_act.endswith("GG"):
+            return 4
+        # Si p.ej 'C2', 'C3', etc. => 
+        # (comprobamos que al menos los 2 últimos chars contengan 'C', 
+        #  EJEMPLO: 'OPC2' -> endswith('C2') => True)
+        if len(op_act) >= 2 and op_act[-2] == "C":
+            return 5
+    return original_hourtype
 
-    # 1) Cargar los datos de TablaCentral (Cargado_SAP=False)
-    data = fetch_data()
+def generate_csv_file(db: Session) -> str:
+    """
+    Genera un CSV a partir de las filas con Cargado_SAP=False y
+    devuelve la ruta donde se guardó.
+    """
+    data = fetch_data(db)
+    if data.empty:
+        # Retorna un CSV vacío si no hay nada
+        # (o podríamos devolver None para indicar que no hay nada)
+        pass
 
-    # 2) Formatear la columna de fecha
+    # 1) Formatear la columna Date
     data['Date'] = data['Date'].apply(format_date)
 
-    # 3) Crear columnas faltantes
+    # 2) Añadir columnas extra con valor vacío
     for col in ['Project', 'Wbs', 'Cost Center', 'Activity Type', 'Status', 'Serial Number']:
         data[col] = ''
 
-    # 4) Ajustar HourType según OperationActivity
-    def map_hourtype(op_act, original_hourtype):
-        """
-        Lógica especial de etiquetado:
-          - Si op_act termina en "XX" => 3
-          - Si op_act termina en "GG" => 4
-          - Si penúltimo char es "C" => 5
-          - Caso contrario, se deja original
-        """
-        if isinstance(op_act, str):
-            if op_act.endswith("XX"):
-                return 3
-            elif op_act.endswith("GG"):
-                return 4
-            elif len(op_act) >= 2 and op_act[-2] == "C":
-                return 5
-        return original_hourtype
-
+    # 3) Ajustar HourType según la OperationActivity
     data['HourType'] = [
         map_hourtype(act, ht) for act, ht in zip(data['OperationActivity'], data['HourType'])
     ]
 
-    # 5) Reordenar columnas
+    # 4) Reordenar columnas
     columnas_finales = [
-        'Employee_Number', 'Date', 'HourType', 'Project', 'Wbs', 'Cost Center',
-        'Activity Type', 'ProductionOrder', 'Operation', 'OperationActivity',
-        'Hours', 'Status', 'Serial Number'
+        'Employee_Number',
+        'Date',
+        'HourType',
+        'Project',
+        'Wbs',
+        'Cost Center',
+        'Activity Type',
+        'ProductionOrder',
+        'Operation',
+        'OperationActivity',
+        'Hours',
+        'Status',
+        'Serial Number'
     ]
     data = data[columnas_finales]
 
-    # 6) Directorio de salida
-    dir_path = r"S:\O-BEA-14-DIVISION_3\Eider\Mass Upload"
-    if not os.path.exists(dir_path):
-        os.makedirs(dir_path)
-
-    # 7) Generar nombre de archivo con timestamp
+    # 5) Guardar en una carpeta temporal
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    file_name = f"mass_upload_{timestamp}"
-    xlsx_path = os.path.join(dir_path, file_name + ".xlsx")
-    csv_path = os.path.join(dir_path, file_name + ".csv")
+    file_name = f"mass_upload_{timestamp}.csv"
+    tmp_dir = os.path.join(os.getcwd(), "tmp_csv_sap")  # Ajusta la carpeta como prefieras
+    if not os.path.exists(tmp_dir):
+        os.makedirs(tmp_dir)
 
-    # 8) Guardar Excel
-    print(f"Guardando archivo Excel en: {xlsx_path}")
-    with pd.ExcelWriter(xlsx_path, engine='xlsxwriter') as writer:
-        data.to_excel(writer, index=False, sheet_name='Report')
-    print("Archivo Excel generado con éxito.")
+    csv_path = os.path.join(tmp_dir, file_name)
 
-    # 9) Guardar CSV en formato SAP/Excel (usando ';', cod cp1252)
-    print(f"Guardando archivo CSV en: {csv_path}")
+    # 6) Exportar CSV con separador ';', codificación cp1252 y lineterminator '\r\n'
     data.to_csv(
         csv_path,
         sep=';',
@@ -120,10 +111,5 @@ def generate_excel():
         lineterminator='\r\n',
         quoting=csv.QUOTE_MINIMAL
     )
-    print("Archivo CSV generado con éxito.")
 
-    # 10) (Opcional) abrir la carpeta en Explorador
-    subprocess.run(f'explorer /select,\"{xlsx_path}\"', shell=True)
-
-if __name__ == "__main__":
-    generate_excel()
+    return csv_path

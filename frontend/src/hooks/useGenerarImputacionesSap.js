@@ -116,9 +116,7 @@ export default function useGenerarImputacionesSap() {
   };
 
   const downloadCSV = () => {
-    if (processId) {
-      downloadGeneratedCSV(processId);
-    }
+      downloadGeneratedCSV();
   };
 
   return {

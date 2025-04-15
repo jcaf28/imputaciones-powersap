@@ -38,10 +38,10 @@ export async function cancelGenerarImputacionesSap(processId) {
  * 4) GET/POST: Descargar CSV final
  *    - Podrías usar GET si tu backend expone /download/{processId}
  */
-export async function downloadGeneratedCSV(processId) {
+export async function downloadGeneratedCSV() {
   // Descarga CSV. Suponemos que el backend genera un CSV en memoria y lo expone en:
   // GET /generar-imputaciones-sap/download/{processId}
-  const url = `${BASE_URL}/generar-imputaciones-sap/download/${processId}`;
+  const url = `${BASE_URL}/generar-imputaciones-sap/download`;
 
   // Forzar descarga
   const link = document.createElement("a");
