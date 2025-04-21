@@ -5,7 +5,7 @@ import FileUploadChecker from "../components/FileUploadChecker";
 import ProcessLogger from "../components/ProcessLogger";
 import useCargarRespuestaSap from "../hooks/useCargarRespuestaSap";
 
-export const meta = { label: "Cargar Respuesta SAP", priority: 1 };
+export const meta = { label: "Cargar Respuesta SAP", priority: 4 };
 
 export default function CargarRespuestaSap() {
   const {

@@ -1,48 +1,96 @@
 // PATH: frontend/src/pages/ObtenerFeedback.jsx
 
+import {
+  Box,
+  Button,
+  CircularProgress,
+  Typography,
+} from "@mui/material";
+import FileUploadChecker from "../components/FileUploadChecker";
+import ProcessLogger from "../components/ProcessLogger";
+import useObtenerFeedback from "../hooks/useObtenerFeedback";
+
 export const meta = {
-  label: "Obtener Feedback", // nombre para el sidebar
-  priority: 5                // orden de aparición
+  label: "Obtener Feedback",
+  priority: 5,
 };
 
-import { useState } from 'react';
-import { getHealth } from '../services/healthService';
-
 export default function ObtenerFeedback() {
-  const [respuesta, setRespuesta] = useState(null);
-  const [error, setError] = useState(null);
-
-  async function handleClick() {
-    try {
-      const data = await getHealth();
-      console.log('Respuesta:', data);
-      setRespuesta(data);
-      setError(null);
-    } catch (e) {
-      console.error(e);
-      setRespuesta(null);
-      setError(e.message);
-    }
-  }
+  const {
+    file,
+    validated,
+    status,
+    error,
+    isUploading,
+    logs,
+    setFile,
+    validateFile,
+    startProcess,
+    cancelProcess,
+  } = useObtenerFeedback();
 
   return (
-    <div>
-      <h1>Hola soy la página LoQueSea</h1>
-      <button onClick={handleClick}>
-        Obtener Health
-      </button>
+    <Box sx={{ p: 2 }}>
+      <Typography variant="h4" gutterBottom>
+        Obtener Feedback
+      </Typography>
 
-      {respuesta && (
-        <div style={{ marginTop: '1rem', color: 'green' }}>
-          <strong>Respuesta del backend:</strong> {JSON.stringify(respuesta)}
-        </div>
-      )}
+      <FileUploadChecker
+        label="Archivo de feedback (.xlsx)"
+        index={0}
+        file={file}
+        validated={validated}
+        onFileChange={(_i, newFile) => setFile(newFile)}
+        onValidate={validateFile}
+      />
 
-      {error && (
-        <div style={{ marginTop: '1rem', color: 'red' }}>
-          <strong>Error:</strong> {error}
-        </div>
-      )}
-    </div>
+      {/* Botones */}
+      <Box sx={{ mt: 2 }}>
+        <Button
+          variant="contained"
+          disabled={!validated || isUploading || status === "in-progress"}
+          onClick={startProcess}
+          sx={{ mr: 1 }}
+        >
+          Iniciar proceso
+        </Button>
+        <Button
+          variant="outlined"
+          disabled={!file || status !== "in-progress"}
+          onClick={cancelProcess}
+        >
+          Cancelar
+        </Button>
+      </Box>
+
+      {/* Estado + Logger */}
+      <Box sx={{ mt: 2 }}>
+        <Typography variant="body1" sx={{ mb: 1 }}>
+          <strong>Status:</strong> {status}
+        </Typography>
+
+        {status === "in-progress" && (
+          <Box
+            sx={{
+              display: "flex",
+              alignItems: "center",
+              gap: 1,
+              mb: 2,
+            }}
+          >
+            <CircularProgress size={20} />
+            <Typography variant="body2">Procesando...</Typography>
+          </Box>
+        )}
+
+        <ProcessLogger logs={logs} title="Log del proceso" />
+
+        {error && (
+          <Typography variant="body1" color="error" sx={{ mt: 2 }}>
+            <strong>Error:</strong> {error}
+          </Typography>
+        )}
+      </Box>
+    </Box>
   );
 }
