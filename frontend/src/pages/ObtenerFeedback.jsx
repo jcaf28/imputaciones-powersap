@@ -1,5 +1,3 @@
-// PATH: frontend/src/pages/ObtenerFeedback.jsx
-
 import {
   Box,
   Button,
@@ -23,6 +21,7 @@ export default function ObtenerFeedback() {
     error,
     isUploading,
     logs,
+    downloadUrl,     // 👈 nuevo
     setFile,
     validateFile,
     startProcess,
@@ -44,7 +43,7 @@ export default function ObtenerFeedback() {
         onValidate={validateFile}
       />
 
-      {/* Botones */}
+      {/* Botones de control */}
       <Box sx={{ mt: 2 }}>
         <Button
           variant="contained"
@@ -62,6 +61,19 @@ export default function ObtenerFeedback() {
           Cancelar
         </Button>
       </Box>
+
+      {/* Botón de descarga cuando termina */}
+      {status === "completed" && downloadUrl && (
+        <Box sx={{ mt: 2 }}>
+          <Button
+            variant="contained"
+            color="success"
+            onClick={() => window.open(downloadUrl, "_blank")}
+          >
+            Descargar archivo procesado
+          </Button>
+        </Box>
+      )}
 
       {/* Estado + Logger */}
       <Box sx={{ mt: 2 }}>

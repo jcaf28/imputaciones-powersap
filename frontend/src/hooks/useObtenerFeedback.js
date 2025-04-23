@@ -1,5 +1,3 @@
-// PATH: frontend/src/hooks/useObtenerFeedback.js
-
 import { useState, useEffect } from "react";
 import {
   validateFeedbackFile,
@@ -9,19 +7,20 @@ import {
 import useSSE from "./useSSE";
 
 export default function useObtenerFeedback() {
-  // ---------- 1. archivo + validación ----------
+  // ---------- 1. archivo + validación ----------
   const [file, setFile] = useState(null);
   const [token, setToken] = useState(null);
   const [validated, setValidated] = useState(false);
 
-  // ---------- 2. proceso / SSE ----------
+  // ---------- 2. proceso / SSE ----------
   const [processId, setProcessId] = useState(null);
   const [isUploading, setIsUploading] = useState(false);
-  const [status, setStatus] = useState("idle"); // idle | in‑progress | completed | cancelled | error
+  const [status, setStatus] = useState("idle"); // idle | in-progress | completed | cancelled | error
   const [error, setError] = useState("");
   const [logs, setLogs] = useState([]);
+  const [downloadUrl, setDownloadUrl] = useState(null); // 👈 nuevo
 
-  // ---------- 3. SSE ----------
+  // ---------- 3. SSE ----------
   const sseUrl = processId
     ? `${import.meta.env.VITE_API_BASE_URL}/obtener-feedback/events/${processId}`
     : null;
@@ -40,6 +39,10 @@ export default function useObtenerFeedback() {
       case "completed":
         setStatus("completed");
         setLogs((prev) => [...prev, `✅ ${data}`]);
+        // 👉 genera la URL de descarga
+        setDownloadUrl(
+          `${import.meta.env.VITE_API_BASE_URL}/obtener-feedback/download/${processId}`
+        );
         break;
       case "cancelled":
         setStatus("cancelled");
@@ -53,9 +56,9 @@ export default function useObtenerFeedback() {
       default:
         break;
     }
-  }, [events]);
+  }, [events, processId]);
 
-  // ---------- 4. helpers ----------
+  // ---------- 4. helpers ----------
   async function handleValidate() {
     if (!file) return;
     try {
@@ -83,6 +86,7 @@ export default function useObtenerFeedback() {
       const { process_id } = await startFeedbackProcess(token);
       setProcessId(process_id);
       setStatus("in-progress");
+      setDownloadUrl(null); // limpia cualquier url previa
     } catch (err) {
       alert(
         "Error al iniciar proceso: " +
@@ -99,6 +103,7 @@ export default function useObtenerFeedback() {
     setProcessId(null);
     setStatus("idle");
     setError("");
+    setDownloadUrl(null);
     setLogs((prev) => [...prev, "Proceso cancelado por el usuario."]);
   }
 
@@ -109,8 +114,9 @@ export default function useObtenerFeedback() {
     error,
     isUploading,
     logs,
+    downloadUrl,           // 👈 exporta la url
     // handlers
-    setFile: setFile,
+    setFile,
     validateFile: handleValidate,
     startProcess: handleStart,
     cancelProcess: handleCancel,
