@@ -1,151 +1,95 @@
-# PATH: backend/app/api/routes/obtener_feedback.py
-
-from fastapi import (
-    APIRouter, BackgroundTasks, UploadFile, HTTPException,
-    Query, Request, File, Response
-)
-from fastapi.responses import StreamingResponse
-import uuid, asyncio
-import pandas as pd
-from io import BytesIO
-
+from fastapi import APIRouter, UploadFile, HTTPException, BackgroundTasks, Request, Query, File
+from fastapi.responses import StreamingResponse, FileResponse
 from app.core.sse_manager import sse_manager
-from app.services.feedback.obtener_feedback_service import (
-    preparar_dataframe_feedback,
-    generar_xlsx_en_memoria,
-)
+from io import BytesIO
+import pandas as pd
+import uuid
+import asyncio
+import tempfile
+
+from app.services.feedback.feedback_processor import procesar_feedback_completo
 
 router = APIRouter()
 
-# token  -> (DataFrame, nombre_original)
-VALIDATED_DFS: dict[str, tuple[pd.DataFrame, str]] = {}
-# procId -> { "filename": str, "content": bytes }
-RESULTS: dict[str, dict] = {}
+VALIDATED_FEEDBACK = {}  # token -> DataFrame
+TEMP_FILES = {}          # process_id -> temp file path
 
-
-# ---------- 1) VALIDAR ------------------------------------------------------
 @router.post("/validate-file")
-async def validate_file(file: UploadFile = File(...)):
-    if not file.filename.lower().endswith(".xlsx"):
-        raise HTTPException(400, "El archivo debe ser .xlsx")
+async def validate_feedback_file(file: UploadFile = File(...)):
+    if not file.filename.endswith(".xlsx"):
+        raise HTTPException(status_code=400, detail="El archivo debe ser .xlsx")
 
+    content = await file.read()
     try:
-        df = pd.read_excel(BytesIO(await file.read()), engine="openpyxl")
+        df = pd.read_excel(BytesIO(content), engine="openpyxl")
+        if 'Fecha' not in df.columns:
+            raise ValueError("El archivo debe contener una columna 'Fecha'")
     except Exception as e:
-        raise HTTPException(400, f"Error leyendo Excel: {e}")
+        raise HTTPException(status_code=400, detail=f"Error procesando el archivo: {str(e)}")
 
     token = str(uuid.uuid4())
-    VALIDATED_DFS[token] = (df, file.filename)
-    return {"message": "Archivo válido", "token": token}
+    VALIDATED_FEEDBACK[token] = df
 
+    return {"message": "Archivo de feedback válido", "token": token}
 
-# ---------- 2) START --------------------------------------------------------
 @router.post("/start")
-async def start_obtener_feedback(
-    token: str = Query(...),
-    background_tasks: BackgroundTasks | None = None,
-):
-    if token not in VALIDATED_DFS:
-        raise HTTPException(400, "Token no encontrado")
+async def start_feedback_process(token: str = Query(...), background_tasks: BackgroundTasks = None):
+    if token not in VALIDATED_FEEDBACK:
+        raise HTTPException(status_code=400, detail="Token no encontrado o archivo no validado")
 
     process_id = str(uuid.uuid4())
     sse_manager.start_process(process_id)
 
-    df, original_name = VALIDATED_DFS[token]
+    df = VALIDATED_FEEDBACK[token]
+    background_tasks.add_task(long_running_feedback_task, process_id, df, token)
 
-    background_tasks.add_task(
-        _worker,
-        process_id,
-        df.copy(),           # aislamos
-        original_name,
-        token,
-    )
     return {"process_id": process_id}
 
-
-# ---------- 3) EVENTOS SSE --------------------------------------------------
 @router.get("/events/{process_id}")
-async def sse_events(request: Request, process_id: str):
-    async def event_gen():
+async def sse_feedback_events(request: Request, process_id: str):
+    async def event_generator():
         while True:
             if await request.is_disconnected():
                 break
+
             event = sse_manager.pop_next_event(process_id)
             if event:
-                typ, data = event
-                yield f"event: {typ}\ndata: {data}\n\n"
-                if typ in ("completed", "cancelled", "error"):
+                event_type, data = event
+                yield f"event: {event_type}\ndata: {data}\n\n"
+                if event_type in ("completed", "cancelled", "error"):
                     break
             else:
                 await asyncio.sleep(0.5)
 
-    return StreamingResponse(event_gen(), media_type="text/event-stream")
+    return StreamingResponse(event_generator(), media_type="text/event-stream")
 
-
-# ---------- 4) DESCARGAR RESULTADO -----------------------------------------
-@router.get("/result/{process_id}")
-async def download_result(process_id: str):
-    info = RESULTS.pop(process_id, None)
-    if not info:
-        raise HTTPException(404, "Resultado no disponible")
-
-    # al descargar eliminamos también de SSE manager para liberar memoria
-    sse_manager.delete_process(process_id)
-
-    return Response(
-        content=info["content"],
-        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        headers={
-            "Content-Disposition": f'attachment; filename="{info["filename"]}"'
-        },
-    )
-
-
-# ---------- 5) CANCELAR -----------------------------------------------------
 @router.post("/cancel/{process_id}")
-async def cancel_process(process_id: str):
-    if sse_manager.get_state(process_id):
+async def cancel_feedback_process(process_id: str):
+    state = sse_manager.get_state(process_id)
+    if state:
         sse_manager.mark_cancelled(process_id)
-        RESULTS.pop(process_id, None)
         return {"message": "Proceso cancelado"}
     return {"message": "Proceso no encontrado"}
 
+@router.get("/download/{process_id}")
+async def download_feedback_file(process_id: str):
+    if process_id not in TEMP_FILES:
+        raise HTTPException(status_code=404, detail="Archivo no encontrado")
+    return FileResponse(TEMP_FILES[process_id], filename="feedback_result.xlsx")
 
-# ---------- 6) DESCARTAR TOKEN ---------------------------------------------
-@router.post("/discard")
-def discard_file(token: str = Query(...)):
-    VALIDATED_DFS.pop(token, None)
-    return {"message": "OK"}
-
-
-# ---------- 7) WORKER -------------------------------------------------------
-def _worker(
-    process_id: str,
-    df: pd.DataFrame,
-    original_name: str,
-    token: str,
-):
+async def long_running_feedback_task(process_id: str, df: pd.DataFrame, token: str):
     try:
-        sse_manager.send_message(process_id, f"📥 Fichero con {len(df)} filas recibido")
+        sse_manager.send_message(process_id, f"📄 Procesando archivo con {len(df)} filas...")
 
-        sse_manager.send_message(process_id, "🛠️ Preparando datos…")
-        df_prepared = preparar_dataframe_feedback(df)
+        _, temp_file_path = procesar_feedback_completo(df, process_id)
+        TEMP_FILES[process_id] = temp_file_path
 
-        sse_manager.send_message(process_id, "🔍 Consultando base de datos…")
-        filename, content_bytes = generar_xlsx_en_memoria(
-            df_prepared, original_name, process_id
-        )
+        sse_manager.mark_completed(process_id, "✅ Feedback procesado. Listo para descargar.")
 
-        # limpiar memoria del token de validación
-        VALIDATED_DFS.pop(token, None)
-
-        RESULTS[process_id] = {"filename": filename, "content": content_bytes}
-
-        sse_manager.mark_completed(
-            process_id,
-            f"🏁 Proceso finalizado – listo para descargar.",
-        )
     except Exception as e:
-        VALIDATED_DFS.pop(token, None)
-        RESULTS.pop(process_id, None)
-        sse_manager.mark_error(process_id, f"❌ Error: {e}")
+        sse_manager.mark_error(process_id, f"❌ Error: {str(e)}")
+
+    finally:
+        if token in VALIDATED_FEEDBACK:
+            del VALIDATED_FEEDBACK[token]
+
