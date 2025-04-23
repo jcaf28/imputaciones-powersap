@@ -1,3 +1,5 @@
+// PATH: frontend/src/pages/ObtenerFeedback.jsx
+
 import {
   Box,
   Button,

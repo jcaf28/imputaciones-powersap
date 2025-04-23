@@ -1,9 +1,9 @@
+# PATH: backend/app/services/feedback/feedback_processor.py
+
 import pandas as pd
-from io import BytesIO
-import tempfile
+import tempfile, os
 import openpyxl
 from openpyxl.styles import Font
-from datetime import datetime
 from sqlalchemy.orm import Session
 
 from app.db.session import database_session
@@ -13,47 +13,65 @@ from app.services.feedback._utils import change_dtypes, intercambiar_tareas
 
 # ==== Procesamiento Completo ====
 
-def procesar_feedback_completo(df: pd.DataFrame, process_id: str):
-    sse_manager.send_message(process_id, "🔍 Filtrando fechas parseables...")
+def procesar_feedback_completo(
+    df: pd.DataFrame,
+    process_id: str,
+    original_filename: str
+):
+    sse_manager.send_message(process_id, "🔍 Filtrando fechas parseables…")
     df = _filtrar_fechas_parseables(df)
 
-    sse_manager.send_message(process_id, "⚙️ Ajustando tipos de datos...")
+    sse_manager.send_message(process_id, "⚙️ Ajustando tipos de datos…")
     df = change_dtypes(df)
 
-    sse_manager.send_message(process_id, "🔄 Intercambiando tareas si procede...")
+    sse_manager.send_message(process_id, "🔄 Intercambiando tareas…")
     df = intercambiar_tareas(df)
 
-    # Añadir columnas de resultados
-    df['Estado'] = None
-    df['Imputacion_ID'] = None
-    df['SAP_Order'] = None
-    df['SAP_OperationActivity'] = None
-    df['SAP_EffectivityFull'] = None
+    # columnas resultado
+    for col in (
+        "Estado",
+        "Imputacion_ID",
+        "SAP_Order",
+        "SAP_OperationActivity",
+        "SAP_EffectivityFull",
+    ):
+        df[col] = None
 
-    sse_manager.send_message(process_id, "📡 Consultando la base de datos SAP...")
+    sse_manager.send_message(process_id, "📡 Consultando la base de datos…")
 
     with database_session as db:
         for idx, row in df.iterrows():
-            estado, imput_id, sap_order, sap_opact, sap_eff = _obtener_estado_imputacion(db, df, row)
-            df.at[idx, 'Estado'] = estado
-            df.at[idx, 'Imputacion_ID'] = imput_id
-            df.at[idx, 'SAP_Order'] = sap_order
-            df.at[idx, 'SAP_OperationActivity'] = sap_opact
-            df.at[idx, 'SAP_EffectivityFull'] = sap_eff
-
+            estado, imp_id, sap_ord, sap_opact, sap_eff = _obtener_estado_imputacion(
+                db, df, row
+            )
+            df.loc[idx, ["Estado",
+                         "Imputacion_ID",
+                         "SAP_Order",
+                         "SAP_OperationActivity",
+                         "SAP_EffectivityFull"]] = (
+                estado,
+                imp_id,
+                sap_ord,
+                sap_opact,
+                sap_eff,
+            )
             if idx % 10 == 0:
-                sse_manager.send_message(process_id, f"🔢 Procesadas {idx + 1}/{len(df)} filas...")
+                sse_manager.send_message(
+                    process_id, f"🔢 Procesadas {idx + 1}/{len(df)} filas…"
+                )
 
-    sse_manager.send_message(process_id, "🎨 Aplicando colores al Excel...")
+    sse_manager.send_message(process_id, "🎨 Aplicando colores…")
 
-    # Guardar en archivo temporal y colorear
-    temp_file = tempfile.NamedTemporaryFile(delete=False, suffix=".xlsx")
+    # -------- nombre de salida: feedback_<nombre-entrada>.xlsx ----------
+    base = os.path.splitext(os.path.basename(original_filename))[0]
+    temp_file = tempfile.NamedTemporaryFile(
+        delete=False, prefix=f"feedback_{base}_", suffix=".xlsx"
+    )
     df.to_excel(temp_file.name, index=False)
     _colorear_celdas_según_estado(temp_file.name)
 
-    sse_manager.send_message(process_id, "✅ Archivo generado y coloreado correctamente.")
-
-    return df, temp_file.name
+    sse_manager.send_message(process_id, "✅ Archivo generado correctamente.")
+    return temp_file.name, f"feedback_{base}.xlsx"
 
 # ==== Funciones Auxiliares ====
 
