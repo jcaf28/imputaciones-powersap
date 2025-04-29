@@ -42,7 +42,7 @@ def generate_zip_with_csv_and_xlsx(db: Session) -> str:
 
     •  El CSV usa ‘;’ como separador y codificación cp1252 (idéntico a antes).
     •  Se **elimina** la comilla simple que se añadía delante de
-       ProductionOrder, Operation y OperationActivity.
+        ProductionOrder, Operation y OperationActivity.
     """
     data = fetch_data(db)
     if data.empty:
