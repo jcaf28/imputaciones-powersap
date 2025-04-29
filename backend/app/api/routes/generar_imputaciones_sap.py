@@ -14,6 +14,7 @@ from fastapi import APIRouter, HTTPException
 from fastapi.responses import FileResponse
 import os
 
+from app.services.generar_imputaciones_sap.assign_sap_orders import run_assign_sap_orders_inmemory
 from app.services.generar_imputaciones_sap.pending_imputaciones import get_imputaciones_pendientes, get_imputaciones_pendientes_count
 
 
@@ -110,7 +111,6 @@ async def sse_events(request: Request, process_id: str):
 def _bg_assign_sap(process_id: str, db: Session):
     logs = SESSIONS[process_id]["logs"]
     try:
-        from app.services.generar_imputaciones_sap.assign_sap_orders import run_assign_sap_orders_inmemory
         logs.append("Iniciando la asignación de SAP Orders en TablaCentral...")
 
         # Llamada principal
