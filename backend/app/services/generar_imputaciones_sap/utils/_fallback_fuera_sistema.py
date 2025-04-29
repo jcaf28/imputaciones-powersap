@@ -1,3 +1,5 @@
+# PATH: backend/app/services/generar_imputaciones_sap/utils/_fallback_fuera_sistema.py
+
 # backend/app/services/generar_imputaciones_sap/utils/_fallback_fuera_sistema.py
 """
 Fallback ‘FUERA SISTEMA’ refactorizado.
