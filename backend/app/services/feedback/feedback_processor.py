@@ -9,7 +9,7 @@ from sqlalchemy.orm import Session
 from app.db.session import database_session
 from app.models.models import Imputaciones, TablaCentral
 from app.core.sse_manager import sse_manager
-from app.services.feedback._utils import change_dtypes, intercambiar_tareas
+from app.services.feedback._utils import change_dtypes, intercambiar_tareas, _filtrar_fechas_parseables, is_null
 
 # ==== Procesamiento Completo ====
 
@@ -75,30 +75,18 @@ def procesar_feedback_completo(
 
 # ==== Funciones Auxiliares ====
 
-def _filtrar_fechas_parseables(df: pd.DataFrame) -> pd.DataFrame:
-    df = df.rename(columns={'Fecha': 'FechaImp'}) if 'Fecha' in df.columns else df
-
-    def es_fecha_parseable(fecha):
-        try:
-            pd.to_datetime(fecha)
-            return True
-        except:
-            return False
-
-    return df[df['FechaImp'].apply(es_fecha_parseable)]
-
 def _obtener_estado_imputacion(db: Session, df: pd.DataFrame, row: pd.Series):
     try:
-        fecha_imp = pd.to_datetime(row['FechaImp']).date() if pd.notna(row['FechaImp']) else None
-        cod_empleado = str(int(row['CodEmpleado'])) if pd.notna(row['CodEmpleado']) else None
-        timpu = str(int(row['Timpu'])) if pd.notna(row['Timpu']) else None
-        proyecto = str(row['Proyecto']) if pd.notna(row['Proyecto']) else None
-        tipo_coche = str(row['TipoCoche']) if pd.notna(row['TipoCoche']) else None
-        num_coche = str(int(float(row['NumCoche']))) if pd.notna(row['NumCoche']) else None
-        centro_trabajo = str(int(row['CentroTrabajo'])) if pd.notna(row['CentroTrabajo']) else None
-        tarea = str(row['Tarea']) if pd.notna(row['Tarea']) else None
-        tarea_asoc = str(row['TareaAsoc']) if pd.notna(row['TareaAsoc']) else None
-        horas = round(float(row['Horas']), 2) if pd.notna(row['Horas']) else None
+        fecha_imp = pd.to_datetime(row['FechaImp']).date() if not is_null(row['FechaImp']) else None
+        cod_empleado = str(int(row['CodEmpleado'])) if not is_null(row['CodEmpleado']) else None
+        timpu = str(int(row['Timpu'])) if not is_null(row['Timpu']) else None
+        proyecto = str(row['Proyecto']) if not is_null(row['Proyecto']) else None
+        tipo_coche = str(row['TipoCoche']) if not is_null(row['TipoCoche']) else None
+        num_coche = str(int(float(row['NumCoche']))) if not is_null(row['NumCoche']) else None
+        centro_trabajo = str(int(row['CentroTrabajo'])) if not is_null(row['CentroTrabajo']) else None
+        tarea = str(row['Tarea']) if not is_null(row['Tarea']) else None
+        tarea_asoc = str(row['TareaAsoc']) if not is_null(row['TareaAsoc']) else None
+        horas = round(float(row['Horas']), 2) if not is_null(row['Horas']) else None
     except Exception as e:
         return "0 - No admitida", None, None, None, None
 
