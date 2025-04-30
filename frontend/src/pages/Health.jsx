@@ -2,7 +2,8 @@
 
 export const meta = {
   label: "Health", // nombre para el sidebar
-  priority: 6              // orden de aparición
+  priority: 98,
+  devOnly: true              // orden de aparición
 };
 
 import { useState } from 'react';

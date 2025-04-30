@@ -5,7 +5,8 @@ import { getTiposOrdenes } from '../services/tiposOrdenesService';
 
 export const meta = {
   label: "Get",
-  priority: 6
+  priority: 99,
+  devOnly: true
 };
 
 export default function ObtenerFeedback() {
