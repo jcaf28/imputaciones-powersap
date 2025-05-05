@@ -1,23 +1,20 @@
-# PATH: backend/app/services/generar_imputaciones_sap/utils/_fallback_fuera_sistema.py
-
 # backend/app/services/generar_imputaciones_sap/utils/_fallback_fuera_sistema.py
 """
-Fallback ‘FUERA SISTEMA’ refactorizado.
-Flujo principal lineal (≤ 3 niveles de indentación).
+Fallback ‘FUERA SISTEMA’ con restricción de Área
+(≤ 3 niveles de indentación).
 """
 
 from __future__ import annotations
-
-from typing import List, Tuple, Optional
 from string import ascii_uppercase
+from typing import List, Tuple, Optional
 
-from sqlalchemy.orm import Session
 from sqlalchemy import desc
+from sqlalchemy.orm import Session
 
 from app.models.models import SapOrders, Imputaciones, Areas, Extraciclos
 
 
-# ────────────────────────────── utilidades simples ─────────────────────────────
+# ───────────────────────────── utilidades simples ─────────────────────────────
 def _vertex_rank(v: str) -> int:
     return ascii_uppercase.index(v.upper()) if v and v.upper() in ascii_uppercase else 9999
 
@@ -43,7 +40,26 @@ def _pick_by_car(orders: List[SapOrders], car: Optional[int]) -> Optional[SapOrd
     return None
 
 
-# ────────────────────────────── bloques de búsqueda ────────────────────────────
+# ────────────────── nuevas utilidades de filtrado por Área ────────────────────
+def _area_match(imp_area: str | None, order_area: str | None) -> bool:
+    if not imp_area or not order_area:
+        return False
+    a, b = imp_area.strip().lower(), order_area.strip().lower()
+    if a == b:
+        return True
+    eb_ea = {"ea", "eb"}
+    return a in eb_ea and b in eb_ea
+
+
+def _filter_orders_by_area(
+    orders: List[SapOrders], imp_area: str | None
+) -> List[SapOrders]:
+    if not imp_area:
+        return orders
+    return [o for o in orders if _area_match(imp_area, o.Area)]
+
+
+# ────────────────────────────── bloques de búsqueda ───────────────────────────
 def _orders_project(db: Session, project: str) -> List[SapOrders]:
     return (
         db.query(SapOrders)
@@ -124,7 +140,7 @@ def _fuera_sistema(
     return None, None, None, None
 
 
-# ────────────────────────────── flujo principal (lineal) ───────────────────────
+# ────────────────────────────── flujo principal ───────────────────────────────
 def fallback_fuera_sistema(
     db: Session, imp: Imputaciones, logs: List[str]
 ) -> Tuple[Optional[int], Optional[str], Optional[str], Optional[str]]:
@@ -133,7 +149,14 @@ def fallback_fuera_sistema(
         return _fuera_sistema(db, logs)
 
     orders = _orders_project(db, proyecto)
+
+    # ─── filtrado por Área ───
+    imp_area = getattr(getattr(imp, "area", None), "Area", None)
+    orders = _filter_orders_by_area(orders, imp_area)
     if not orders:
+        logs.append(
+            f"No hay órdenes activas para proyecto '{proyecto}' tras filtrar por área."
+        )
         return _fuera_sistema(db, logs)
 
     try:

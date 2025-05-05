@@ -1,3 +1,5 @@
+// PATH: frontend/src/routes/routesAuto.jsx
+
 // frontend/src/routes/routesAuto.jsx
 import React from 'react';
 
