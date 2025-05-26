@@ -226,12 +226,22 @@ export default function Proyectos() {
             },
             "& .MuiDataGrid-columnHeaders": {
               backgroundColor: theme.palette.primary.main,
-              color: theme.palette.primary.contrastText,
+              color: theme.palette.text.primary,
               fontWeight: theme.typography.h6.fontWeight,
               "& .MuiDataGrid-columnHeader": {
                 "&:focus": {
                   outline: "none",
                 },
+              },
+              "& .MuiDataGrid-columnHeaderTitle": {
+                color: theme.palette.mode === 'dark' ? theme.palette.common.white : theme.palette.grey[900],
+                fontWeight: theme.typography.h6.fontWeight,
+              },
+              "& .MuiDataGrid-sortIcon": {
+                color: theme.palette.mode === 'dark' ? theme.palette.common.white : theme.palette.grey[900],
+              },
+              "& .MuiDataGrid-menuIcon": {
+                color: theme.palette.mode === 'dark' ? theme.palette.common.white : theme.palette.grey[900],
               },
             },
             "& .MuiDataGrid-row": {
