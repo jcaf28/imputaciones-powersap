@@ -41,22 +41,30 @@ def _pick_by_car(orders: List[SapOrders], car: Optional[int]) -> Optional[SapOrd
 
 
 # ────────────────── nuevas utilidades de filtrado por Área ────────────────────
-def _area_match(imp_area: str | None, order_area: str | None) -> bool:
+def _area_match(imp_area: str | None, order_area: str | None, proyecto: str | None = None, centro_trabajo: str | None = None) -> bool:
     if not imp_area or not order_area:
         return False
     a, b = imp_area.strip().lower(), order_area.strip().lower()
     if a == b:
         return True
+    
+    # Excepción para proyecto '1103' y CentroTrabajo '162': 
+    # la caja de boston es de acero, no de aluminio, por lo que ea, eb y ba son intercambiables
+    if proyecto == '1103' and centro_trabajo == '162':
+        areas_intercambiables = {"ea", "eb", "ba"}
+        return a in areas_intercambiables and b in areas_intercambiables
+    
+    # Lógica normal: solo ea y eb son intercambiables
     eb_ea = {"ea", "eb"}
     return a in eb_ea and b in eb_ea
 
 
 def _filter_orders_by_area(
-    orders: List[SapOrders], imp_area: str | None
+    orders: List[SapOrders], imp_area: str | None, proyecto: str | None = None, centro_trabajo: str | None = None
 ) -> List[SapOrders]:
     if not imp_area:
         return orders
-    return [o for o in orders if _area_match(imp_area, o.Area)]
+    return [o for o in orders if _area_match(imp_area, o.Area, proyecto, centro_trabajo)]
 
 
 # ────────────────────────────── bloques de búsqueda ───────────────────────────
@@ -152,7 +160,7 @@ def fallback_fuera_sistema(
 
     # ─── filtrado por Área ───
     imp_area = getattr(getattr(imp, "area", None), "Area", None)
-    orders = _filter_orders_by_area(orders, imp_area)
+    orders = _filter_orders_by_area(orders, imp_area, proyecto, imp.CentroTrabajo)
     if not orders:
         logs.append(
             f"No hay órdenes activas para proyecto '{proyecto}' tras filtrar por área."
