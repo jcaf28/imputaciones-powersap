@@ -19,14 +19,14 @@ def run_assign_sap_orders_inmemory(db: Session, logs: List[str]):
     1) Limpia Tabla_Central de filas previas con Cargado_SAP=False.
     2) Obtiene las imputaciones pendientes.
     3) Para cada imputación:
-       - Busca primero coincidencia de GG (obtener_sap_order_gg).
-       - Si no hay => intenta operation, operationActivity (extraciclos o Tarea).
-         - Luego busca coincidencia exacta (sap_order).
-         - Si falla => fallback.
-       - Si fallback tampoco encuentra => descarta la imputación.
-       - Si se insertó (sap_order_id != None):
-         => Marca cargadoEnTareaReal = True si NO ha habido fallback,
-            cargadoEnTareaReal = False si sí ha habido fallback.
+        - Busca primero coincidencia de GG (obtener_sap_order_gg).
+        - Si no hay => intenta operation, operationActivity (extraciclos o Tarea).
+          - Luego busca coincidencia exacta (sap_order).
+          - Si falla => fallback.
+        - Si fallback tampoco encuentra => descarta la imputación.
+        - Si se insertó (sap_order_id != None):
+          => Marca cargadoEnTareaReal = True si NO ha habido fallback,
+              cargadoEnTareaReal = False si sí ha habido fallback.
     """
 
     logs.append("🧹 Eliminando imputaciones previas con Cargado_SAP=False en Tabla_Central...")
