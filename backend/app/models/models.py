@@ -74,8 +74,7 @@ class TablaCentral(Base):
   Operation = Column(String)
   OperationActivity = Column(String)
   Hours = Column(Float)
-  Cargado_SAP = Column(Boolean, default=False)  
-  cargadoEnTareaReal = Column(Boolean, default=True)
+  Cargado_SAP = Column(Boolean, default=False)
   TimestampInput = Column(DateTime, nullable=True, default=lambda: datetime.now(timezone.utc))
 
   # Clave foránea para la relación 1:1 con Imputaciones
@@ -99,7 +98,6 @@ class Areas(Base):
 
   CentroTrabajo = Column(String(32), primary_key=True, index=True)
   Area = Column(String)
-  OpMinC = Column(String)
   OpGG = Column(String)
 
   # Relación 1:1 con Imputaciones
