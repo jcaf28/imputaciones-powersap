@@ -19,7 +19,8 @@ def fetch_data(db: Session) -> pd.DataFrame:
         TablaCentral.Hours
     ).filter(TablaCentral.Cargado_SAP == False)
 
-    df = pd.read_sql(query.statement, db.bind)
+    result = db.execute(query.statement)
+    df = pd.DataFrame(result.fetchall(), columns=result.keys())
     return df
 
 def format_date(date):

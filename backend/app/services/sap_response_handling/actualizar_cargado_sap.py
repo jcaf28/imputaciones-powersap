@@ -40,8 +40,11 @@ def actualizar_cargado_sap(df: pd.DataFrame) -> bool:
     Las conversiones se adaptan a los tipos de la BD.
     """
     # ---------- Normalizaciones seguras ----------
+    # dtype=str hace que las columnas sean StringDtype; convertir a object
+    # para poder asignar datetime.date, Int64 y float sin conflicto de tipo.
+    df = df.astype(object)
     df.iloc[:, 0]  = df.iloc[:, 0].apply(_clean_str)          # Employee_Number → str
-    df.iloc[:, 1]  = pd.to_datetime(df.iloc[:, 1], errors="coerce").dt.date  # Date
+    df.iloc[:, 1]  = pd.to_datetime(df.iloc[:, 1], dayfirst=True, errors="coerce").dt.date  # Date
     df.iloc[:, 7]  = pd.to_numeric(df.iloc[:, 7], errors="coerce").astype("Int64")  # BIGINT
     df.iloc[:, 9]  = df.iloc[:, 9].apply(_clean_str)          # OperationActivity → str
     df.iloc[:, 10] = df.iloc[:, 10].apply(_safe_float)        # Hours

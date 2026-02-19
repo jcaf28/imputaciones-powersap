@@ -13,7 +13,7 @@ def _filtrar_fechas_parseables(df: pd.DataFrame) -> pd.DataFrame:
 
     def parsear_fecha(fecha):
         try:
-            return pd.to_datetime(fecha, format="%d/%m/%Y").date()
+            return pd.to_datetime(fecha, dayfirst=True).date()
         except:
             return None
 

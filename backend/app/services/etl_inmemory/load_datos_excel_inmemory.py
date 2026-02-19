@@ -19,7 +19,7 @@ def load_datos_excel_inmemory(df, db_session=None, sse_process_id=None, summary=
     from app.core.sse_manager import sse_manager
 
     if summary is None:
-        summary = {"total": len(df), "success": 0, "fail": 0}
+        summary = {"total": len(df), "success": 0, "skipped": 0, "fail": 0}
 
     # Creamos dos columnas extra en df => 'Status' y 'error_message'
     df["Status"] = None
@@ -91,7 +91,7 @@ def load_datos_excel_inmemory(df, db_session=None, sse_process_id=None, summary=
                 else:
                     df.at[index, "Status"] = "SKIPPED"
                     df.at[index, "error_message"] = f"Ya hay {existing_count} en BD, wanted={wanted_count}"
-                    summary["fail"] += 1
+                    summary["skipped"] += 1
 
             except IntegrityError as e:
                 db.rollback()

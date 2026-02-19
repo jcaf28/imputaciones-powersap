@@ -118,18 +118,22 @@ def long_running_inmemory(process_id: str, df: pd.DataFrame):
     4) Ofrecer SSE summary
     """
     try:
-        total_filas = len(df)
-        sse_manager.send_message(process_id, f"📁 Archivo con {total_filas} filas recibido en memoria.")
-        
+        total_filas_raw = len(df)
+        sse_manager.send_message(process_id, f"📁 Archivo con {total_filas_raw} filas recibido en memoria.")
+
         sse_manager.send_message(process_id, "🔄 Transformando datos (inmemory)...")
         df_transformado = transformar_datos_excel_inmemory(df)
 
+        filas_filtradas = total_filas_raw - len(df_transformado)
+        if filas_filtradas > 0:
+            sse_manager.send_message(process_id, f"🔽 {filas_filtradas} filas filtradas en transformación.")
+
         sse_manager.send_message(process_id, "💾 Cargando datos en la BD (inmemory)...")
 
-        # Aquí obtendremos summary y df_result (con columns Status, error_message)
         summary = {
-            "total": total_filas,
+            "total": len(df_transformado),
             "success": 0,
+            "skipped": 0,
             "fail": 0
         }
 
@@ -147,10 +151,13 @@ def long_running_inmemory(process_id: str, df: pd.DataFrame):
         COMPLETED_FILES[process_id] = filepath
 
         # Mensaje final
-        mensaje_final = ( f"Proceso finalizado. "
-                          f"Filas totales: {summary['total']}, "
-                          f"exitosas: {summary['success']}, "
-                          f"fallidas: {summary['fail']}.")
+        partes = [f"Filas: {summary['total']}"]
+        partes.append(f"insertadas: {summary['success']}")
+        if summary['skipped'] > 0:
+            partes.append(f"duplicadas: {summary['skipped']}")
+        if summary['fail'] > 0:
+            partes.append(f"errores: {summary['fail']}")
+        mensaje_final = f"Proceso finalizado. {', '.join(partes)}."
         sse_manager.mark_completed(process_id, mensaje_final)
     except Exception as e:
         sse_manager.mark_error(process_id, f"Error: {str(e)}")
