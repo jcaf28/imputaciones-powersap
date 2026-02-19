@@ -120,14 +120,10 @@ def _obtener_estado_imputacion(db: Session, df: pd.DataFrame, row: pd.Series):
     sap_opact_val = sap_order.OperationActivity if sap_order else None
     sap_eff_val = sap_order.EffectivityFull if sap_order else None
 
-    if tabla_central.Cargado_SAP and tabla_central.cargadoEnTareaReal:
-        estado = "1- Cargado correctamente en SAP"
-    elif tabla_central.Cargado_SAP and not tabla_central.cargadoEnTareaReal:
-        estado = "2- Cargado en SAP a una tarea alternativa"
-    elif not tabla_central.Cargado_SAP and tabla_central.cargadoEnTareaReal:
-        estado = "3a- tarea encontrada pero imputación no cargada en sap"
+    if tabla_central.Cargado_SAP:
+        estado = "1 - Cargado en SAP"
     else:
-        estado = "3b- tarea alternativa encontrada pero imputación no cargada en sap"
+        estado = "2 - Pendiente de carga en SAP"
 
     return estado, imputacion.ID, sap_order_val, sap_opact_val, sap_eff_val
 
@@ -145,11 +141,9 @@ def _colorear_celdas_según_estado(ruta_archivo):
             break
 
     colores = {
-        "0 - No admitida": "C00000",  # rojo
-        "1- Cargado correctamente en SAP": "00B050",  # verde oscuro
-        "2- Cargado en SAP a una tarea alternativa": "92D050",  # verde claro
-        "3a- tarea encontrada pero imputación no cargada en sap": "FFC000",  # ámbar
-        "3b- tarea alternativa encontrada pero imputación no cargada en sap": "FFC000"  # ámbar
+        "0 - No admitida": "C00000",                # rojo
+        "1 - Cargado en SAP": "00B050",              # verde
+        "2 - Pendiente de carga en SAP": "FFC000",   # ámbar
     }
 
     if col_estado:
