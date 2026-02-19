@@ -8,12 +8,9 @@ from app.models.models import TablaCentral, Imputaciones
 from sqlalchemy import or_, func, true, false
 
 def _clean_str(value) -> str | None:
-    """
-    Convierte a string, quita '.0' y espacios; devuelve None si NaN/None.
-    """
     if pd.isna(value):
         return None
-    return str(value).replace(".0", "").strip()
+    return str(value).strip()
 
 
 def _safe_float(value) -> float | None:
