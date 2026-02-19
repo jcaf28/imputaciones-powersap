@@ -30,7 +30,7 @@ async def validate_file(file: UploadFile = File(...)):
 
     try:
         # Simple check: ¿se puede abrir con pandas?
-        pd.read_excel(BytesIO(content), engine="openpyxl")
+        pd.read_excel(BytesIO(content), engine="openpyxl", dtype=str)
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"Error procesando el archivo: {e}")
 

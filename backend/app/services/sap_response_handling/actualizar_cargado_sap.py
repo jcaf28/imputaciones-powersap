@@ -28,7 +28,7 @@ def _safe_float(value) -> float | None:
 
 def leer_datos_excel(path: str):
     try:
-        df = pd.read_excel(path, engine="openpyxl")
+        df = pd.read_excel(path, engine="openpyxl", dtype=str)
         return df, True
     except Exception as e:
         print(f"[leer_datos_excel] Error: {e}")

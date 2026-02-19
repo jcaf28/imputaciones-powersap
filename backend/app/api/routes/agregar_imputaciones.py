@@ -26,7 +26,7 @@ async def validate_file(file: UploadFile = File(...)):
 
     content = await file.read()
     try:
-        df = pd.read_excel(BytesIO(content), engine="openpyxl")
+        df = pd.read_excel(BytesIO(content), engine="openpyxl", dtype=str)
         if df.empty:
             raise ValueError("El Excel está vacío")
     except Exception as e:

@@ -29,7 +29,7 @@ async def validate_file(file: UploadFile = File(...)):
     # Leer en memoria
     content = await file.read()
     try:
-        df = pd.read_excel(BytesIO(content), engine="openpyxl")
+        df = pd.read_excel(BytesIO(content), engine="openpyxl", dtype=str)
         verificar_columnas_excel(df, REQUIRED_COLUMNS)
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"Error procesando el archivo: {str(e)}")

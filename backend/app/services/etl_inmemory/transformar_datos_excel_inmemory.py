@@ -28,10 +28,9 @@ def transformar_datos_excel_inmemory(df):
         df = df[~(df['Comentario'].str.contains('FU') & df['Comentario'].str.contains('300'))]
 
     if 'TipoMotivo' in df.columns:
-        df['TipoMotivo'] = df['TipoMotivo'].astype(str).str.lstrip('0').str.replace('.0', '', regex=False)
+        df['TipoMotivo'] = df['TipoMotivo'].str.lstrip('0')
 
-    if 'TipoIndirecto' in df.columns:
-        df['TipoIndirecto'] = df['TipoIndirecto'].astype(str).str.replace('.0', '', regex=False)
+    # TipoIndirecto ya es str desde dtype=str
 
     # Quitar 'PERMISOS'
     if 'Proyecto' in df.columns:
@@ -126,41 +125,12 @@ def transformar_datos_excel_inmemory(df):
                 df.at[index, 'TareaAsoc'] = old_tarea
 
     # ----------------------------------------------------------------------
-    # 6) Conversión de tipos a str/num
+    # 6) Conversión de tipos numéricos
     # ----------------------------------------------------------------------
-    #   Ojo: esto puede convertir None en 'None' → luego lo limpiaremos
-    if 'CodEmpleado' in df.columns:
-        df['CodEmpleado'] = df['CodEmpleado'].astype(str).str.replace('.0', '', regex=False)
-
-    if 'Timpu' in df.columns:
-        df['Timpu'] = df['Timpu'].astype(str).str.replace('.0', '', regex=False)
-
+    # Con dtype=str en read_excel, todos los campos ya son str.
+    # Solo necesitamos convertir Horas a numérico.
     if 'Horas' in df.columns:
         df['Horas'] = pd.to_numeric(df['Horas'], errors='coerce').round(2)
-
-    if 'Proyecto' in df.columns:
-        df['Proyecto'] = df['Proyecto'].astype(str).str.replace('.0', '', regex=False)
-
-    if 'TipoCoche' in df.columns:
-        df['TipoCoche'] = df['TipoCoche'].astype(str)
-
-    if 'NumCoche' in df.columns:
-        df['NumCoche'] = df['NumCoche'].astype(str).str.replace('.0', '', regex=False)
-
-    if 'CentroTrabajo' in df.columns:
-        df['CentroTrabajo'] = df['CentroTrabajo'].astype(str).str.replace('.0', '', regex=False)
-
-    if 'Tarea' in df.columns:
-        df['Tarea'] = df['Tarea'].astype(str).str.replace('.0', '', regex=False)
-
-    if 'TareaAsoc' in df.columns:
-        df['TareaAsoc'] = df['TareaAsoc'].astype(str).str.replace('.0', '', regex=False)
-
-    if 'TipoMotivo' in df.columns:
-        df['TipoMotivo'] = df['TipoMotivo'].astype(str).str.replace('.0', '', regex=False)
-
-    if 'TipoIndirecto' in df.columns:
-        df['TipoIndirecto'] = df['TipoIndirecto'].astype(str).str.replace('.0', '', regex=False)
 
     # ----------------------------------------------------------------------
     # 7) Paso final: re-convertir strings tipo 'None', 'nan', etc. a None real

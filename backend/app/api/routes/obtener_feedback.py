@@ -31,7 +31,7 @@ async def validate_feedback_file(file: UploadFile = File(...)):
 
     content = await file.read()
     try:
-        df = pd.read_excel(BytesIO(content), engine="openpyxl")
+        df = pd.read_excel(BytesIO(content), engine="openpyxl", dtype=str)
         if "Fecha" not in df.columns:
             raise ValueError("El archivo debe contener una columna 'Fecha'")
     except Exception as e:

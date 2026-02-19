@@ -78,14 +78,14 @@ def procesar_feedback_completo(
 def _obtener_estado_imputacion(db: Session, df: pd.DataFrame, row: pd.Series):
     try:
         fecha_imp = pd.to_datetime(row['FechaImp']).date() if not is_null(row['FechaImp']) else None
-        cod_empleado = str(int(row['CodEmpleado'])) if not is_null(row['CodEmpleado']) else None
-        timpu = str(int(row['Timpu'])) if not is_null(row['Timpu']) else None
-        proyecto = str(row['Proyecto']) if not is_null(row['Proyecto']) else None
-        tipo_coche = str(row['TipoCoche']) if not is_null(row['TipoCoche']) else None
-        num_coche = str(int(float(row['NumCoche']))) if not is_null(row['NumCoche']) else None
-        centro_trabajo = str(int(row['CentroTrabajo'])) if not is_null(row['CentroTrabajo']) else None
-        tarea = str(row['Tarea']) if not is_null(row['Tarea']) else None
-        tarea_asoc = str(row['TareaAsoc']) if not is_null(row['TareaAsoc']) else None
+        cod_empleado = str(row['CodEmpleado']).strip() if not is_null(row['CodEmpleado']) else None
+        timpu = str(row['Timpu']).strip() if not is_null(row['Timpu']) else None
+        proyecto = str(row['Proyecto']).strip() if not is_null(row['Proyecto']) else None
+        tipo_coche = str(row['TipoCoche']).strip() if not is_null(row['TipoCoche']) else None
+        num_coche = str(row['NumCoche']).strip() if not is_null(row['NumCoche']) else None
+        centro_trabajo = str(row['CentroTrabajo']).strip() if not is_null(row['CentroTrabajo']) else None
+        tarea = str(row['Tarea']).strip() if not is_null(row['Tarea']) else None
+        tarea_asoc = str(row['TareaAsoc']).strip() if not is_null(row['TareaAsoc']) else None
         horas = round(float(row['Horas']), 2) if not is_null(row['Horas']) else None
     except Exception as e:
         return "0 - No admitida", None, None, None, None
