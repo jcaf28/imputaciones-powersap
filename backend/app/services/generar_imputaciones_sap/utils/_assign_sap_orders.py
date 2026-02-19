@@ -118,18 +118,4 @@ def obtener_sap_order_gg(
 
     return None
 
-def fallback_fuera_sistema(db: Session, logs: List[str]) -> int:
-    """
-    Busca la SapOrder con Operation='FUERA_SISTEMA' y ActiveOrder=1.
-    Devuelve su ID, o None si no existe.
-    """
-    so = db.query(SapOrders).filter(
-        SapOrders.ActiveOrder == True,
-        SapOrders.Operation == "FUERA_SISTEMA"
-    ).order_by(desc(SapOrders.TimestampInput)).first()
-
-    if so:
-        return so.ID
-    logs.append("⚠️ No se encontró la SapOrder genérica FUERA_SISTEMA.")
-    return None
 
