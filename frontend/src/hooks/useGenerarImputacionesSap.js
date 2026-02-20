@@ -37,6 +37,7 @@ export default function useGenerarImputacionesSap() {
   const [processId, setProcessId] = useState(null);
   const [rowCount, setRowCount] = useState(null);
   const [showingRows, setShowingRows] = useState(false);
+  const [pendingWarning, setPendingWarning] = useState(null);
 
   // Al montar, solo pedimos el conteo de imputaciones pendientes
   useEffect(() => {
@@ -69,11 +70,12 @@ export default function useGenerarImputacionesSap() {
     }
   };
 
-  const handleStartProcess = async () => {
+  const _launchProcess = async (force = false) => {
     setLoading(true);
     setError(null);
+    setPendingWarning(null);
     try {
-      const { process_id } = await startGenerarImputacionesSap();
+      const { process_id } = await startGenerarImputacionesSap(force);
       setProcessId(process_id);
       setStatus("in-progress");
       setLogs([]);
@@ -104,11 +106,19 @@ export default function useGenerarImputacionesSap() {
         evtSource.close();
       };
     } catch (err) {
-      setError("Error al iniciar el proceso");
+      if (err.response?.status === 409) {
+        setPendingWarning(err.response.data.detail);
+      } else {
+        setError("Error al iniciar el proceso");
+      }
     } finally {
       setLoading(false);
     }
   };
+
+  const handleStartProcess = () => _launchProcess(false);
+  const handleForceStart = () => _launchProcess(true);
+  const handleDismissWarning = () => setPendingWarning(null);
 
   const handleCancel = async () => {
     if (!processId) return;
@@ -128,11 +138,14 @@ export default function useGenerarImputacionesSap() {
     logs,
     processId,
     handleStartProcess,
+    handleForceStart,
+    handleDismissWarning,
     handleCancel,
     refreshData,
     downloadCSV,
     rowCount,
     showingRows,
-    toggleShowRows
+    toggleShowRows,
+    pendingWarning
   };
 }

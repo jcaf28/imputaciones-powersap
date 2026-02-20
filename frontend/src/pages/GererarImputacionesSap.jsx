@@ -1,7 +1,7 @@
 // PATH: frontend/src/pages/GererarImputacionesSap.jsx
 
 import React from "react";
-import { Box, Typography, Button, CircularProgress } from "@mui/material";
+import { Box, Typography, Button, CircularProgress, Alert } from "@mui/material";
 import { DataGrid } from "@mui/x-data-grid";
 
 import useGenerarImputacionesSap from "../hooks/useGenerarImputacionesSap";
@@ -22,11 +22,14 @@ export default function GenerarImputacionesSap() {
     logs,
     processId,
     handleStartProcess,
+    handleForceStart,
+    handleDismissWarning,
     handleCancel,
     downloadCSV,
     rowCount,
     showingRows,
-    toggleShowRows
+    toggleShowRows,
+    pendingWarning
   } = useGenerarImputacionesSap();
 
   return (
@@ -65,6 +68,22 @@ export default function GenerarImputacionesSap() {
           )}
         </Box>
       </Box>
+
+      {pendingWarning && (
+        <Alert severity="warning" sx={{ mb: 2 }}>
+          <Typography variant="body2" sx={{ mb: 1 }}>
+            {pendingWarning.message}
+          </Typography>
+          <Box sx={{ display: "flex", gap: 1 }}>
+            <Button size="small" variant="contained" color="warning" onClick={handleForceStart}>
+              Continuar igualmente
+            </Button>
+            <Button size="small" variant="outlined" onClick={handleDismissWarning}>
+              Cancelar
+            </Button>
+          </Box>
+        </Alert>
+      )}
 
       {loading && status !== "in-progress" && (
         <Box sx={{ display: "flex", alignItems: "center", mb: 2 }}>

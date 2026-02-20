@@ -20,9 +20,8 @@ export async function fetchPendingImputacionesCount() {
 /**
  * 2) POST: Iniciar proceso SSE (devuelve process_id)
  */
-export async function startGenerarImputacionesSap() {
-  // Ajusta si necesitas query params, etc.
-  const resp = await axios.post(`${BASE_URL}/generar-imputaciones-sap/start`);
+export async function startGenerarImputacionesSap(force = false) {
+  const resp = await axios.post(`${BASE_URL}/generar-imputaciones-sap/start?force=${force}`);
   return resp.data; // { process_id: "..."}
 }
 

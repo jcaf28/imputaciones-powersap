@@ -1,6 +1,6 @@
 # PATH: backend/app/api/routes/generar_imputaciones_sap.py
 
-from fastapi import APIRouter, Depends, Request, BackgroundTasks, HTTPException
+from fastapi import APIRouter, Depends, Request, BackgroundTasks, HTTPException, Query
 from fastapi.responses import StreamingResponse, Response
 from typing import Dict, Any, List
 import uuid
@@ -14,6 +14,7 @@ from fastapi import APIRouter, HTTPException
 from fastapi.responses import FileResponse
 import os
 
+from app.models.models import TablaCentral
 from app.services.generar_imputaciones_sap.assign_sap_orders import run_assign_sap_orders_inmemory
 from app.services.generar_imputaciones_sap.pending_imputaciones import get_imputaciones_pendientes, get_imputaciones_pendientes_count
 
@@ -56,8 +57,20 @@ def download_sap_csv_zip(db: Session = Depends(get_db)):
 @router.post("/start")
 def start_process_sap(
     background_tasks: BackgroundTasks,
+    force: bool = Query(False),
     db: Session = Depends(get_db)
 ):
+    if not force:
+        pending_count = db.query(TablaCentral).filter(TablaCentral.Cargado_SAP == False).count()
+        if pending_count > 0:
+            raise HTTPException(
+                status_code=409,
+                detail={
+                    "message": f"Hay {pending_count} filas pendientes de respuesta SAP. Si continúas, se eliminarán y podrían generar duplicados en SAP.",
+                    "pending_count": pending_count
+                }
+            )
+
     process_id = str(uuid.uuid4())
     SESSIONS[process_id] = {
         "status": "in-progress",
