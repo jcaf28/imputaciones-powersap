@@ -29,7 +29,8 @@ export default function GenerarImputacionesSap() {
     rowCount,
     showingRows,
     toggleShowRows,
-    pendingWarning
+    pendingWarning,
+    matchedCount
   } = useGenerarImputacionesSap();
 
   return (
@@ -100,17 +101,23 @@ export default function GenerarImputacionesSap() {
         </Typography>
       )}
 
-      {(status === "in-progress" || status === "completed") && (
+      {(status === "in-progress" || status === "completed" || status === "error") && (
         <Box sx={{ mb: 2 }}>
           <Typography variant="h6">Progreso:</Typography>
           <ProcessLogger logs={logs} title="Log de Generación SAP" />
         </Box>
       )}
 
-      {status === "completed" && (
+      {status === "completed" && matchedCount > 0 && (
         <Button variant="contained" onClick={downloadCSV}>
           Descargar ZIP (CSV + XLSX)
         </Button>
+      )}
+
+      {status === "completed" && matchedCount === 0 && (
+        <Alert severity="warning" sx={{ mt: 2 }}>
+          No se asignó ninguna imputación. Revisa los logs para ver el motivo de cada descarte.
+        </Alert>
       )}
 
       {showingRows && (

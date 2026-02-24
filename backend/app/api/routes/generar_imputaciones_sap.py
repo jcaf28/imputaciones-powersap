@@ -6,6 +6,7 @@ from typing import Dict, Any, List
 import uuid
 import time
 import asyncio
+import traceback
 from sqlalchemy.orm import Session
 
 from app.db.session import get_db
@@ -111,7 +112,11 @@ async def sse_events(request: Request, process_id: str):
                 last_idx += 1
 
             if session["status"] in ["completed", "cancelled", "error"]:
-                yield f"event: {session['status']}\ndata: {logs[-1]}\n\n"
+                final_data = logs[-1] if logs else ""
+                if session["status"] == "completed":
+                    mc = session.get("matched_count", 0)
+                    final_data = f"{mc}"
+                yield f"event: {session['status']}\ndata: {final_data}\n\n"
                 break
 
             await asyncio.sleep(0.4)
@@ -127,14 +132,20 @@ def _bg_assign_sap(process_id: str, db: Session):
         logs.append("Iniciando la asignación de SAP Orders en TablaCentral...")
 
         # Llamada principal
-        run_assign_sap_orders_inmemory(db, logs)
+        matched = run_assign_sap_orders_inmemory(db, logs)
 
-        logs.append("✅ Proceso completado. Ya puedes generar el CSV con /generate-excel (si lo deseas).")
+        if matched and matched > 0:
+            logs.append(f"✅ Proceso completado con {matched} asignaciones. Ya puedes descargar el ZIP.")
+        else:
+            logs.append("⚠️ Proceso completado pero sin asignaciones. Revisa los logs para más detalle.")
         SESSIONS[process_id]["status"] = "completed"
+        SESSIONS[process_id]["matched_count"] = matched or 0
 
     except Exception as e:
         SESSIONS[process_id]["status"] = "error"
-        logs.append(f"❌ Error en _bg_assign_sap: {str(e)}")
+        tb = traceback.format_exc()
+        logs.append(f"❌ Error en _bg_assign_sap: {str(e)}\n{tb}")
+        print(f"[generar_imputaciones_sap] ERROR: {str(e)}\n{tb}", flush=True)
 
 
 # ================== HELPERS ===================

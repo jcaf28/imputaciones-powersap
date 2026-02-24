@@ -38,6 +38,7 @@ export default function useGenerarImputacionesSap() {
   const [rowCount, setRowCount] = useState(null);
   const [showingRows, setShowingRows] = useState(false);
   const [pendingWarning, setPendingWarning] = useState(null);
+  const [matchedCount, setMatchedCount] = useState(null);
 
   // Al montar, solo pedimos el conteo de imputaciones pendientes
   useEffect(() => {
@@ -74,6 +75,7 @@ export default function useGenerarImputacionesSap() {
     setLoading(true);
     setError(null);
     setPendingWarning(null);
+    setMatchedCount(null);
     try {
       const { process_id } = await startGenerarImputacionesSap(force);
       setProcessId(process_id);
@@ -89,7 +91,8 @@ export default function useGenerarImputacionesSap() {
       };
 
       evtSource.addEventListener("completed", (event) => {
-        setLogs((prevLogs) => [...prevLogs, event.data]);
+        const mc = parseInt(event.data, 10);
+        setMatchedCount(isNaN(mc) ? 0 : mc);
         setStatus("completed");
         evtSource.close();
       });
@@ -100,11 +103,15 @@ export default function useGenerarImputacionesSap() {
         evtSource.close();
       });
 
-      evtSource.onerror = () => {
-        setLogs((prevLogs) => [...prevLogs, "❌ Error de conexión SSE"]);
+      evtSource.addEventListener("error", (event) => {
+        if (event.data) {
+          setLogs((prevLogs) => [...prevLogs, event.data]);
+        } else {
+          setLogs((prevLogs) => [...prevLogs, "❌ Error de conexión SSE"]);
+        }
         setStatus("error");
         evtSource.close();
-      };
+      });
     } catch (err) {
       if (err.response?.status === 409) {
         setPendingWarning(err.response.data.detail);
@@ -146,6 +153,7 @@ export default function useGenerarImputacionesSap() {
     rowCount,
     showingRows,
     toggleShowRows,
-    pendingWarning
+    pendingWarning,
+    matchedCount
   };
 }

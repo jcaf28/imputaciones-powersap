@@ -32,16 +32,24 @@ def run_assign_sap_orders_inmemory(db: Session, logs: List[str]):
     imps_pendientes = get_imputaciones_pendientes(db)
     if not imps_pendientes:
         logs.append("No hay imputaciones pendientes.")
-        return
+        return 0
 
     logs.append(f"Encontradas {len(imps_pendientes)} imputaciones pendientes.")
     extraciclos_all = db.query(Extraciclos).all()
+
+    # Contadores de resultado
+    matched_count = 0
+    discarded_no_operation = 0
+    discarded_no_project = 0
+    discarded_no_sap_match = 0
+    discarded_not_found = 0
 
     for i_dict in imps_pendientes:
         imp_id = i_dict["id"]
         imp = db.query(Imputaciones).filter(Imputaciones.ID == imp_id).first()
         if not imp:
             logs.append(f"❌ Imputación ID={imp_id} no se encontró en BD.")
+            discarded_not_found += 1
             continue
 
         logs.append(f"🔧 Procesando imputación ID={imp_id}...")
@@ -62,7 +70,8 @@ def run_assign_sap_orders_inmemory(db: Session, logs: List[str]):
             op, op_act = obtener_operation_via_db(imp, db, extraciclos_all, logs)
 
             if op is None or op_act is None:
-                logs.append(f"⚠️ Imputación ID={imp_id} DESCARTADA: sin operation/operationActivity.")
+                logs.append(f"⚠️ Imputación ID={imp_id} DESCARTADA: sin operation/operationActivity (Tarea={imp.Tarea}, TareaAsoc={imp.TareaAsoc}).")
+                discarded_no_operation += 1
                 continue
 
             # -----------------------------------------------------------
@@ -71,6 +80,7 @@ def run_assign_sap_orders_inmemory(db: Session, logs: List[str]):
             proyecto_sap = obtener_proyecto_sap(imp.Proyecto, db)
             if not proyecto_sap:
                 logs.append(f"⚠️ Imputación ID={imp_id} DESCARTADA: proyecto SAP no encontrado para '{imp.Proyecto}'.")
+                discarded_no_project += 1
                 continue
 
             # -----------------------------------------------------------
@@ -80,7 +90,8 @@ def run_assign_sap_orders_inmemory(db: Session, logs: List[str]):
                 db, proyecto_sap, imp, op_act, logs
             )
             if so_id is None:
-                logs.append(f"⚠️ Imputación ID={imp_id} DESCARTADA: sin coincidencia exacta en SAP.")
+                logs.append(f"⚠️ Imputación ID={imp_id} DESCARTADA: sin coincidencia exacta en SAP (Proy={proyecto_sap}, Vert={imp.TipoCoche}, Coche={imp.NumCoche}, OA={op_act}).")
+                discarded_no_sap_match += 1
                 continue
 
             sap_id = so_id
@@ -104,6 +115,24 @@ def run_assign_sap_orders_inmemory(db: Session, logs: List[str]):
         db.add(new_row)
         db.commit()
 
+        matched_count += 1
         logs.append(
             f"✅ Imputación ID={imp_id} insertada => SapOrder={sap_id}."
         )
+
+    # Resumen final
+    total = len(imps_pendientes)
+    total_discarded = discarded_not_found + discarded_no_operation + discarded_no_project + discarded_no_sap_match
+    logs.append(f"📊 RESUMEN: {matched_count}/{total} asignadas, {total_discarded} descartadas.")
+    if discarded_no_operation > 0:
+        logs.append(f"   - Sin operation/operationActivity: {discarded_no_operation}")
+    if discarded_no_project > 0:
+        logs.append(f"   - Sin proyecto SAP: {discarded_no_project}")
+    if discarded_no_sap_match > 0:
+        logs.append(f"   - Sin coincidencia exacta en SAP: {discarded_no_sap_match}")
+    if discarded_not_found > 0:
+        logs.append(f"   - No encontradas en BD: {discarded_not_found}")
+    if matched_count == 0:
+        logs.append("⚠️ ATENCIÓN: Ninguna imputación pudo ser asignada. No se generará ZIP.")
+
+    return matched_count
