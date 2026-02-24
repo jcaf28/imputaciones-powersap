@@ -21,7 +21,7 @@ def transformar_datos_sap(df: pd.DataFrame) -> pd.DataFrame:
     df['OperationActivityFull'] = df['Operation Activity']
     df['EffectivityFull'] = df['Effectivity']
     # Este parseo es un ejemplo del original:
-    df['Order'] = pd.to_numeric(df['Order'].str.extract(r'\((\d+)\)')[0], errors='coerce')
+    df['Order'] = pd.to_numeric(df['Order'].str.extract(r'\((\d+)\)')[0], errors='coerce').astype('Int64')
 
     df['Operation'] = df['Operation Activity'].str.extract(r'(\d+)')
     df['OperationActivity'] = df['Operation Activity'].str.extract(r'^(\S+)')

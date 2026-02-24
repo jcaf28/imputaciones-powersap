@@ -100,13 +100,20 @@ def run_assign_sap_orders_inmemory(db: Session, logs: List[str]):
         # -----------------------------------------------------------
         # 5) Insertar en Tabla_Central
         # -----------------------------------------------------------
+        # SapOrders.Order puede contener "2000097595.0" (float como string)
+        # TablaCentral.ProductionOrder es BIGINT => limpiar decimal
+        try:
+            clean_prod_order = int(float(prod_order)) if prod_order else None
+        except (ValueError, TypeError):
+            clean_prod_order = None
+
         new_row = TablaCentral(
             imputacion_id=imp_id,
             sap_order_id=sap_id,
             Employee_Number=imp.CodEmpleado,
             Date=imp.FechaImp,
             HourType="Production Direct Hour",
-            ProductionOrder=prod_order,
+            ProductionOrder=clean_prod_order,
             Operation=op,
             OperationActivity=op_act,
             Hours=imp.Horas,
