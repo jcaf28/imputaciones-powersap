@@ -7,6 +7,7 @@ from datetime import datetime
 from sqlalchemy.orm import Session
 from app.models.models import TablaCentral
 from zipfile import ZipFile
+from openpyxl.utils import get_column_letter
 
 def fetch_data(db: Session) -> pd.DataFrame:
     query = db.query(
@@ -22,9 +23,6 @@ def fetch_data(db: Session) -> pd.DataFrame:
     result = db.execute(query.statement)
     df = pd.DataFrame(result.fetchall(), columns=result.keys())
     return df
-
-def format_date(date):
-    return date.strftime("%d/%m/%Y") if pd.notnull(date) else ""
 
 def map_hourtype(op_act, original_hourtype):
     if isinstance(op_act, str):
@@ -49,8 +47,8 @@ def generate_zip_with_csv_and_xlsx(db: Session) -> str:
     if data.empty:
         return None
 
-    # 1) Formatear la columna Date -> dd/mm/YYYY
-    data["Date"] = data["Date"].apply(format_date)
+    # 1) Asegurar que Date sea datetime64 para formateo correcto en CSV y XLSX
+    data["Date"] = pd.to_datetime(data["Date"])
 
     # 2) Columnas extra vacías
     for col in [
@@ -96,7 +94,7 @@ def generate_zip_with_csv_and_xlsx(db: Session) -> str:
     xlsx_path = os.path.join(tmp_dir, base_name + ".xlsx")
     zip_path = os.path.join(tmp_dir, base_name + ".zip")
 
-    # 6) Guardar CSV (sin la comilla simple)
+    # 6) Guardar CSV con fechas dd/mm/YYYY
     data_final.to_csv(
         csv_path,
         sep=";",
@@ -104,10 +102,20 @@ def generate_zip_with_csv_and_xlsx(db: Session) -> str:
         index=False,
         lineterminator="\r\n",
         quoting=csv.QUOTE_MINIMAL,
+        date_format="%d/%m/%Y",
     )
 
-    # 7) Guardar XLSX
-    data_final.to_excel(xlsx_path, index=False)
+    # 7) Guardar XLSX con fechas como celdas de fecha reales (formato DD/MM/YYYY)
+    with pd.ExcelWriter(xlsx_path, engine="openpyxl",
+                        date_format="DD/MM/YYYY",
+                        datetime_format="DD/MM/YYYY") as writer:
+        data_final.to_excel(writer, index=False)
+        ws = writer.sheets["Sheet1"]
+        # Buscar la columna "Date" y forzar el number_format en todas sus celdas
+        date_col_idx = cols_final.index("Date") + 1  # 1-based
+        date_col_letter = get_column_letter(date_col_idx)
+        for cell in ws[date_col_letter][1:]:  # skip header
+            cell.number_format = "DD/MM/YYYY"
 
     # 8) Empaquetar ZIP
     with ZipFile(zip_path, "w") as z:
