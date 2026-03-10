@@ -17,9 +17,13 @@ def transformar_datos_excel_inmemory(df):
     if 'Fecha' in df.columns and 'FechaImp' not in df.columns:
         df = df.rename(columns={'Fecha': 'FechaImp'})
 
-    # Aquí forzamos dd/mm/yyyy => date
+    # Convertir fecha a date.  Con dtype=str + openpyxl las fechas llegan
+    # en formato ISO "YYYY-MM-DD HH:MM:SS", donde dayfirst=True intercambia
+    # mes/día erróneamente.  Usamos format explícito para ISO.
     if 'FechaImp' in df.columns:
-        df['FechaImp'] = pd.to_datetime(df['FechaImp'], dayfirst=True, errors='coerce').dt.date
+        df['FechaImp'] = pd.to_datetime(
+            df['FechaImp'], format="%Y-%m-%d %H:%M:%S", errors='coerce'
+        ).dt.date
 
     if 'Comentario' in df.columns:
         # Convertir a str para usar .contains()
